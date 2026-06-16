@@ -3,5 +3,21 @@
     "source.fixAll": "explicit",
     "source.organizeImports": "explicit",
     "source.sortMembers": "explicit"
-  }
+  },
+  "cSpell.words": [
+    "guniluk",
+    "webmobileinstagram",
+    "clerkexpoquickstart",
+    "clerk",
+    "zustand",
+    "reanimated",
+    "haptics",
+    "autolinking",
+    "ccache",
+    "hermes",
+    "xcworkspace",
+    "xcodebuild",
+    "pressable",
+    "Pressable"
+  ]
 }
