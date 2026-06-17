@@ -51,6 +51,7 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingBottom: 40,
     alignItems: "center",
+    marginTop: 50,
   },
   googleButton: {
     flexDirection: "row",

@@ -1,18 +1,26 @@
-import React from 'react';
-import { StyleSheet, Text, View, Pressable, Platform, ActivityIndicator } from 'react-native';
-import * as WebBrowser from 'expo-web-browser';
-import * as Linking from 'expo-linking';
-import * as AuthSession from 'expo-auth-session';
-import { useOAuth } from '@clerk/expo';
-import { COLORS } from '@/constants/theme';
-import { Ionicons } from '@expo/vector-icons';
+import { COLORS } from "@/constants/theme";
+import { styles as authStyles } from "@/styles/auth.styles";
+import { useSSO } from "@clerk/expo";
+import { Ionicons } from "@expo/vector-icons";
+import * as AuthSession from "expo-auth-session";
+import * as WebBrowser from "expo-web-browser";
+import React from "react";
+import {
+  ActivityIndicator,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
-// 웹브라우저 웜업 (안드로이드 UX 향상)
+// 모바일 웹브라우저 세션 완료 처리 (인증 완료 후 앱 복귀 리디렉션 감지용)
 WebBrowser.maybeCompleteAuthSession();
 
+// 웹브라우저 웜업 (안드로이드 UX 향상)
 export default function SignInScreen() {
   React.useEffect(() => {
-    if (Platform.OS === 'android') {
+    if (Platform.OS === "android") {
       void WebBrowser.warmUpAsync();
       return () => {
         void WebBrowser.coolDownAsync();
@@ -20,7 +28,7 @@ export default function SignInScreen() {
     }
   }, []);
 
-  const { startOAuthFlow: startGoogleFlow } = useOAuth({ strategy: 'oauth_google' });
+  const { startSSOFlow } = useSSO();
   const [isLoading, setIsLoading] = React.useState(false);
 
   const onGoogleSignIn = React.useCallback(async () => {
@@ -28,110 +36,71 @@ export default function SignInScreen() {
       setIsLoading(true);
       // Expo Go와 Development Build 모두 호환되는 Redirect URL 생성
       const redirectUrl = AuthSession.makeRedirectUri({
-        scheme: 'webmobileinstagram',
-        path: '(tabs)',
+        scheme: "webmobileinstagram",
+        path: "(tabs)",
       });
-      const { createdSessionId, setActive } = await startGoogleFlow({ redirectUrl });
+      const { createdSessionId, setActive } = await startSSOFlow({
+        strategy: "oauth_google",
+        redirectUrl,
+      });
 
       if (createdSessionId && setActive) {
         await setActive({ session: createdSessionId });
       }
     } catch (err) {
-      console.error('Google Sign-In Error:', err);
+      console.error("Google Sign-In Error:", err);
     } finally {
       setIsLoading(false);
     }
-  }, [startGoogleFlow]);
+  }, [startSSOFlow]);
 
   return (
-    <View style={styles.container}>
-      <View style={styles.logoContainer}>
+    <View style={authStyles.container}>
+      <View style={authStyles.brandSection}>
+        <View style={authStyles.logoContainer}>
+          <Ionicons name="logo-instagram" size={32} color={COLORS.primary} />
+        </View>
         {/* 인스타그램 스타일의 로고 텍스트 대체 */}
-        <Text style={styles.logoText}>Instagram</Text>
-        <Text style={styles.subtitle}>Sign in to see photos and videos from your friends.</Text>
+        <Text style={authStyles.appName}>Instagram</Text>
+        <Text style={authStyles.tagline}>
+          Sign in to see photos and videos from your friends.
+        </Text>
       </View>
 
-      <View style={styles.buttonContainer}>
-        <Pressable 
-          style={[styles.button, styles.googleButton]} 
+      <View style={authStyles.loginSection}>
+        <Pressable
+          style={authStyles.googleButton}
           onPress={onGoogleSignIn}
           disabled={isLoading}
         >
           {isLoading ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={COLORS.surface} />
           ) : (
             <>
-              <Ionicons name="logo-google" size={20} color="#fff" style={styles.buttonIcon} />
-              <Text style={styles.buttonText}>Continue with Google</Text>
+              <View style={authStyles.googleIconContainer}>
+                <Ionicons name="logo-google" size={20} color={COLORS.surface} />
+              </View>
+              <Text style={authStyles.googleButtonText}>
+                Continue with Google
+              </Text>
             </>
           )}
         </Pressable>
       </View>
 
-      <Text style={styles.footerText}>
+      <Text style={[authStyles.termsText, localStyles.footerPosition]}>
         By signing up, you agree to our Terms, Data Policy and Cookies Policy.
       </Text>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background || '#000',
-    justifyContent: 'center',
-    paddingHorizontal: 40,
-  },
-  logoContainer: {
-    alignItems: 'center',
-    marginBottom: 50,
-  },
-  logoText: {
-    fontSize: 42,
-    fontWeight: 'bold',
-    color: '#fff',
-    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
-    letterSpacing: 1,
-    marginBottom: 12,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#a8a8a8',
-    textAlign: 'center',
-    lineHeight: 20,
-    paddingHorizontal: 10,
-  },
-  buttonContainer: {
-    width: '100%',
-    marginBottom: 30,
-  },
-  button: {
-    flexDirection: 'row',
-    height: 48,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-  },
-  googleButton: {
-    backgroundColor: '#0095f6', // 인스타그램 메인 블루 톤
-  },
-  buttonIcon: {
-    marginRight: 10,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  footerText: {
-    fontSize: 12,
-    color: '#737373',
-    textAlign: 'center',
-    lineHeight: 16,
-    position: 'absolute',
+const localStyles = StyleSheet.create({
+  footerPosition: {
+    position: "absolute",
     bottom: 40,
     left: 40,
     right: 40,
+    alignItems: "center",
   },
 });
