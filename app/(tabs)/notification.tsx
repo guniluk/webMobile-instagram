@@ -9,13 +9,23 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { styles } from '../../styles/notifications.styles';
-import { usePostsStore, Notification } from '../../store/postsStore';
 import { COLORS } from '@/constants/theme';
+import { useMutation, useQuery } from "convex/react";
+import { api } from "../../convex/_generated/api";
 
 export default function Notifications() {
-  const { notifications } = usePostsStore();
+  const notifications = useQuery(api.notifications.getNotifications) || [];
+  const deleteNotificationMutation = useMutation(api.notifications.deleteNotification);
 
-  const getBadgeIcon = (type: Notification['type']) => {
+  const handleDeleteNotification = async (notificationId: string) => {
+    try {
+      await deleteNotificationMutation({ notificationId: notificationId as any });
+    } catch (error) {
+      console.error("Failed to delete notification:", error);
+    }
+  };
+
+  const getBadgeIcon = (type: string) => {
     switch (type) {
       case 'like':
         return <Ionicons name="heart" size={12} color="#ff3040" />;
@@ -23,10 +33,12 @@ export default function Notifications() {
         return <Ionicons name="chatbubble" size={11} color="#0095f6" />;
       case 'follow':
         return <Ionicons name="person-add" size={11} color={COLORS.primary} />;
+      default:
+        return <Ionicons name="notifications" size={11} color={COLORS.grey} />;
     }
   };
 
-  const renderItem = ({ item }: { item: Notification }) => (
+  const renderItem = ({ item }: { item: any }) => (
     <View style={styles.notificationItem}>
       <View style={styles.notificationContent}>
         {/* Avatar with Badge */}
@@ -47,10 +59,20 @@ export default function Notifications() {
         </View>
       </View>
 
-      {/* Post Image Preview (if available) */}
-      {item.postImage && (
-        <Image source={{ uri: item.postImage }} style={styles.postImage} />
-      )}
+      {/* Right Column: Post Image Preview & Delete Button */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+        {item.postImage && (
+          <Image source={{ uri: item.postImage }} style={styles.postImage} />
+        )}
+        
+        {/* Delete Button */}
+        <TouchableOpacity 
+          onPress={() => handleDeleteNotification(item.id)}
+          style={{ padding: 4 }}
+        >
+          <Ionicons name="close" size={20} color={COLORS.grey} />
+        </TouchableOpacity>
+      </View>
     </View>
   );
 

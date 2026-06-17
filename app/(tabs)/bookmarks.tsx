@@ -1,32 +1,206 @@
+import { COLORS } from '@/constants/theme';
+import { useUser } from '@clerk/expo';
+import { Ionicons } from '@expo/vector-icons';
+import { useMutation, useQuery } from 'convex/react';
 import React, { useState } from 'react';
 import {
+  Alert,
   FlatList,
   Image,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { usePostsStore, Post } from '../../store/postsStore';
+import { api } from '../../convex/_generated/api';
+import { styles as feedStyles } from '../../styles/feed.styles';
 import { styles as profileStyles } from '../../styles/profile.styles';
-import { COLORS } from '@/constants/theme';
 
 export default function Bookmarks() {
-  const { posts } = usePostsStore();
-  const bookmarkedPosts = posts.filter((post) => post.isBookmarked);
+  const { user } = useUser();
+  const bookmarkedPosts = useQuery(api.bookmarks.getBookmarkedPosts) || [];
   
-  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+  // 로그인한 사용자 정보 조회
+  const convexUser = useQuery(
+    api.users.getUserByClerkId,
+    user?.id ? { clerkId: user.id } : "skip"
+  );
 
-  const renderGridItem = ({ item }: { item: Post }) => (
-    <TouchableOpacity 
-      style={profileStyles.gridItem}
-      onPress={() => setSelectedPost(item)}
-    >
-      <Image source={{ uri: item.image }} style={profileStyles.gridImage} />
-    </TouchableOpacity>
+  const toggleLikeMutation = useMutation(api.likes.toggleLike);
+  const toggleBookmarkMutation = useMutation(api.bookmarks.toggleBookmark);
+  const addCommentMutation = useMutation(api.comments.addComment);
+  const toggleFollowMutation = useMutation(api.follows.toggleFollow);
+  const deletePostMutation = useMutation(api.posts.deletePost);
+
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const [commentText, setCommentText] = useState("");
+
+  const selectedPost = bookmarkedPosts.find((p: any) => p.id === selectedPostId) || null;
+
+  const currentUser = {
+    username: user?.username || user?.firstName || 'me_instagram',
+    avatar: user?.imageUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
+  };
+
+  const handleLike = async (postId: string) => {
+    try {
+      await toggleLikeMutation({ postId: postId as any });
+    } catch (error) {
+      console.error("Failed to toggle like:", error);
+    }
+  };
+
+  const handleBookmark = async (postId: string) => {
+    try {
+      await toggleBookmarkMutation({ postId: postId as any });
+    } catch (error) {
+      console.error("Failed to toggle bookmark:", error);
+    }
+  };
+
+  const handleAddComment = async () => {
+    if (!selectedPostId || !commentText.trim()) return;
+    try {
+      await addCommentMutation({ postId: selectedPostId as any, content: commentText });
+      setCommentText("");
+    } catch (error) {
+      console.error("Failed to add comment:", error);
+    }
+  };
+
+  const handleFollow = async (authorId: string) => {
+    try {
+      await toggleFollowMutation({ followingId: authorId as any });
+    } catch (error) {
+      console.error("Failed to toggle follow:", error);
+    }
+  };
+
+  const confirmDeletePost = (postId: string) => {
+    Alert.alert(
+      "Delete Post",
+      "Are you sure you want to delete this post? This will permanently delete the post, image, likes, comments, and bookmarks.",
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Delete", 
+          style: "destructive", 
+          onPress: async () => {
+            try {
+              await deletePostMutation({ postId: postId as any });
+            } catch (err) {
+              console.error("Failed to delete post:", err);
+            }
+          } 
+        }
+      ]
+    );
+  };
+
+  const handleOptionsPress = (post: any) => {
+    const isMyPost = convexUser && post.authorId === convexUser._id;
+
+    if (isMyPost) {
+      Alert.alert(
+        "Post Options",
+        "Choose an action for this post",
+        [
+          {
+            text: "Delete Post",
+            style: "destructive",
+            onPress: () => confirmDeletePost(post.id)
+          },
+          {
+            text: "Cancel",
+            style: "cancel"
+          }
+        ]
+      );
+    } else {
+      Alert.alert(
+        "Post Options",
+        "Choose an action for this post",
+        [
+          {
+            text: post.isFollowing ? "Unfollow" : "Follow",
+            onPress: () => handleFollow(post.authorId)
+          },
+          {
+            text: "Cancel",
+            style: "cancel"
+          }
+        ]
+      );
+    }
+  };
+
+  const renderPost = ({ item }: { item: any }) => (
+    <View key={item.id} style={localStyles.rowCard}>
+      {/* Left: Post Image */}
+      <Image
+        source={{ uri: item.image }}
+        style={localStyles.rowImage}
+        resizeMode="cover"
+      />
+
+      {/* Right: Info and Actions */}
+      <View style={localStyles.rowRightContent}>
+        {/* Top: Username & Caption */}
+        <View style={localStyles.rowTextContainer}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text style={localStyles.rowUsername} numberOfLines={1}>
+              {item.username}
+            </Text>
+            <TouchableOpacity onPress={() => handleOptionsPress(item)}>
+              <Ionicons name="ellipsis-horizontal" size={16} color={COLORS.white} />
+            </TouchableOpacity>
+          </View>
+          <Text style={localStyles.rowCaption} numberOfLines={2}>
+            {item.caption}
+          </Text>
+        </View>
+
+        {/* Middle: Stats & Actions */}
+        <View style={localStyles.rowMetaContainer}>
+          <Text style={localStyles.rowLikesText}>
+            {item.likes.toLocaleString()} likes
+          </Text>
+          <View style={localStyles.rowActions}>
+            <TouchableOpacity onPress={() => handleLike(item.id)}>
+              <Ionicons
+                name={item.isLiked ? "heart" : "heart-outline"}
+                size={18}
+                color={item.isLiked ? "#ff3040" : COLORS.white}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setSelectedPostId(item.id)}>
+              <Ionicons
+                name="chatbubble-outline"
+                size={17}
+                color={COLORS.white}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => handleBookmark(item.id)}>
+              <Ionicons
+                name={item.isBookmarked ? "bookmark" : "bookmark-outline"}
+                size={17}
+                color={COLORS.white}
+              />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Bottom: View comments link */}
+        <TouchableOpacity onPress={() => setSelectedPostId(item.id)}>
+          <Text style={localStyles.rowCommentsText}>Add or view comments...</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 
   return (
@@ -44,49 +218,84 @@ export default function Bookmarks() {
       ) : (
         <FlatList
           data={bookmarkedPosts}
-          renderItem={renderGridItem}
+          renderItem={renderPost}
           keyExtractor={(item) => item.id}
-          numColumns={3}
-          contentContainerStyle={{ paddingHorizontal: 1 }}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 80, paddingTop: 12 }}
         />
       )}
 
-      {/* Post Detail Modal */}
+      {/* Comment Modal */}
       {selectedPost && (
         <Modal
           visible={true}
-          transparent={true}
-          animationType="fade"
-          onRequestClose={() => setSelectedPost(null)}
+          animationType="slide"
+          transparent={false}
+          onRequestClose={() => setSelectedPostId(null)}
         >
-          <View style={profileStyles.modalBackdrop}>
-            <View style={profileStyles.postDetailContainer}>
-              {/* Close Header */}
-              <View style={profileStyles.postDetailHeader}>
-                <TouchableOpacity onPress={() => setSelectedPost(null)}>
-                  <Ionicons name="close" size={24} color={COLORS.white} />
-                </TouchableOpacity>
-              </View>
+          <SafeAreaView style={feedStyles.modalContainer}>
+            {/* Modal Header */}
+            <View style={feedStyles.modalHeader}>
+              <TouchableOpacity onPress={() => setSelectedPostId(null)}>
+                <Ionicons name="chevron-back" size={24} color={COLORS.white} />
+              </TouchableOpacity>
+              <Text style={feedStyles.modalTitle}>Comments</Text>
+              <View style={{ width: 24 }} />
+            </View>
 
-              {/* Post Details (Mock Feed Card inside modal) */}
-              <View style={{ backgroundColor: COLORS.background }}>
-                <View style={styles.detailPostHeader}>
-                  <Image source={{ uri: selectedPost.userAvatar }} style={styles.detailAvatar} />
-                  <Text style={styles.detailUsername}>{selectedPost.username}</Text>
+            {/* Comments List */}
+            <FlatList
+              data={selectedPost.comments}
+              keyExtractor={(item: any) => item.id}
+              style={feedStyles.commentsList}
+              renderItem={({ item }) => (
+                <View style={feedStyles.commentContainer}>
+                  <Image
+                    source={{ uri: item.avatar }}
+                    style={feedStyles.commentAvatar}
+                  />
+                  <View style={feedStyles.commentContent}>
+                    <Text style={feedStyles.commentUsername}>{item.username}</Text>
+                    <Text style={commentText.trim() ? feedStyles.commentText : { color: COLORS.white }}>{item.text}</Text>
+                    <Text style={feedStyles.commentTime}>{item.time}</Text>
+                  </View>
                 </View>
-
-                <Image source={{ uri: selectedPost.image }} style={profileStyles.postDetailImage} />
-
-                <View style={styles.detailInfo}>
-                  <Text style={styles.detailLikes}>{selectedPost.likes} likes</Text>
-                  <Text style={styles.detailCaption}>
-                    <Text style={styles.detailUsernameText}>{selectedPost.username} </Text>
-                    {selectedPost.caption}
+              )}
+              ListEmptyComponent={
+                <View style={[feedStyles.centered, { marginTop: 40 }]}>
+                  <Text style={{ color: COLORS.grey }}>
+                    No comments yet. Be the first!
                   </Text>
                 </View>
+              }
+            />
+
+            {/* Comment Input */}
+            <KeyboardAvoidingView
+              behavior={Platform.OS === "ios" ? "padding" : "height"}
+            >
+              <View style={feedStyles.commentInput}>
+                <Image
+                  source={{ uri: currentUser.avatar }}
+                  style={feedStyles.commentAvatar}
+                />
+                <TextInput
+                  placeholder="Add a comment..."
+                  placeholderTextColor={COLORS.grey}
+                  value={commentText}
+                  onChangeText={setCommentText}
+                  style={feedStyles.input}
+                />
+                <TouchableOpacity
+                  onPress={handleAddComment}
+                  disabled={!commentText.trim()}
+                  style={!commentText.trim() && feedStyles.postButtonDisabled}
+                >
+                  <Text style={feedStyles.postButton}>Post</Text>
+                </TouchableOpacity>
               </View>
-            </View>
-          </View>
+            </KeyboardAvoidingView>
+          </SafeAreaView>
         </Modal>
       )}
     </SafeAreaView>
@@ -110,37 +319,62 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.white,
   },
-  detailPostHeader: {
+});
+
+const localStyles = StyleSheet.create({
+  rowCard: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.surface,
+    borderRadius: 12,
+    borderWidth: 0.5,
+    borderColor: COLORS.surface,
+    overflow: 'hidden',
+    marginBottom: 12,
+    padding: 10,
+    alignItems: 'center',
+  },
+  rowImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 8,
+  },
+  rowRightContent: {
+    flex: 1,
+    marginLeft: 12,
+    justifyContent: 'space-between',
+    height: 80,
+  },
+  rowTextContainer: {
+    flexDirection: 'column',
+  },
+  rowUsername: {
+    color: COLORS.white,
+    fontWeight: '700',
+    fontSize: 12,
+    marginBottom: 1,
+  },
+  rowCaption: {
+    color: COLORS.grey,
+    fontSize: 12,
+    lineHeight: 15,
+  },
+  rowMetaContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
+    justifyContent: 'space-between',
   },
-  detailAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    marginRight: 8,
-  },
-  detailUsername: {
+  rowLikesText: {
     color: COLORS.white,
     fontWeight: '600',
-    fontSize: 14,
+    fontSize: 11,
   },
-  detailInfo: {
-    padding: 12,
+  rowActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
-  detailLikes: {
-    color: COLORS.white,
-    fontWeight: '600',
-    fontSize: 14,
-    marginBottom: 4,
+  rowCommentsText: {
+    color: COLORS.primary,
+    fontSize: 11,
   },
-  detailCaption: {
-    color: COLORS.white,
-    fontSize: 14,
-    lineHeight: 18,
-  },
-  detailUsernameText: {
-    fontWeight: '600',
-  }
 });

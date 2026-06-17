@@ -15,13 +15,16 @@ import { useUser } from '@clerk/expo';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { styles } from '../../styles/create.styles';
-import { usePostsStore } from '../../store/postsStore';
 import { COLORS } from '@/constants/theme';
+import { useMutation } from "convex/react";
+import { api } from "../../convex/_generated/api";
 
 export default function Create() {
   const { user } = useUser();
   const router = useRouter();
-  const { addPost } = usePostsStore();
+  
+  const generateUploadUrl = useMutation(api.posts.generateUploadUrl);
+  const createPost = useMutation(api.posts.createPost);
 
   const [image, setImage] = useState<string | null>(null);
   const [caption, setCaption] = useState('');
@@ -56,8 +59,33 @@ export default function Create() {
     if (!image) return;
     try {
       setIsSubmitting(true);
-      // 포스트 추가
-      addPost(image, caption, currentUser);
+      
+      // 1. 업로드용 URL 발급
+      const uploadUrl = await generateUploadUrl();
+
+      // 2. 이미지 바이너리를 URL로 POST 전송
+      const response = await fetch(image);
+      const blob = await response.blob();
+
+      const uploadResponse = await fetch(uploadUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": blob.type || "image/jpeg",
+        },
+        body: blob,
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error("이미지 업로드에 실패했습니다.");
+      }
+
+      const { storageId } = await uploadResponse.json();
+
+      // 3. Convex DB에 포스트 생성
+      await createPost({
+        storageId,
+        caption: caption.trim() || undefined,
+      });
       
       // 상태 초기화
       setImage(null);
@@ -67,6 +95,7 @@ export default function Create() {
       router.push('/(tabs)');
     } catch (error) {
       console.error('Share post error:', error);
+      alert('공유 중 오류가 발생했습니다: ' + (error as Error).message);
     } finally {
       setIsSubmitting(false);
     }

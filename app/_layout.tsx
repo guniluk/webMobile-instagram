@@ -1,6 +1,6 @@
 import { COLORS } from "@/constants/theme";
 import { ClerkProvider, useAuth } from "@clerk/expo";
-import { ConvexReactClient, useMutation } from "convex/react";
+import { ConvexReactClient, useMutation, useConvexAuth } from "convex/react";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { api } from "@/convex/_generated/api";
 import { Stack, useRouter, useSegments } from "expo-router";
@@ -34,13 +34,30 @@ const convex = new ConvexReactClient(convexUrl, {
 
 function MainLayout() {
   const insets = useSafeAreaInsets();
-  const { isLoaded, isSignedIn } = useAuth();
+  const { isLoaded, isSignedIn, getToken } = useAuth();
+  const { isAuthenticated } = useConvexAuth();
   const segments = useSegments();
   const router = useRouter();
   const storeUser = useMutation(api.users.storeUser);
 
-  // 로그인 상태에 따른 라우팅 제어 및 Convex DB 유저 저장/동기화
+  // Clerk 'convex' 템플릿 토큰 정상 발급 여부 확인 로그
   React.useEffect(() => {
+    if (isSignedIn) {
+      const checkToken = async () => {
+        try {
+          const token = await getToken({ template: "convex" });
+          console.log("Clerk Token Debug - 'convex' template token:", token ? `Token exists (Starts with: ${token.substring(0, 15)}...)` : "Token is null/undefined");
+        } catch (error) {
+          console.error("Clerk Token Debug - Error fetching token:", error);
+        }
+      };
+      void checkToken();
+    }
+  }, [isSignedIn, getToken]);
+
+  // 로그인 상태에 따른 라우팅 제어
+  React.useEffect(() => {
+    console.log("Clerk Auth State - isLoaded:", isLoaded, "isSignedIn:", isSignedIn);
     if (!isLoaded) return;
 
     const inAuthGroup = segments[0] === "(auth)";
@@ -48,23 +65,28 @@ function MainLayout() {
     if (!isSignedIn && !inAuthGroup) {
       // 로그인되어 있지 않은데 auth 그룹이 아닌 곳에 있다면 로그인 화면으로 리다이렉트
       router.replace("/(auth)/sign-in");
-    } else if (isSignedIn) {
-      // 로그인되어 있는 경우 Convex DB에 사용자 정보 자동 동기화
+    } else if (isSignedIn && inAuthGroup) {
+      // 로그인되어 있는데 auth 그룹에 있다면 메인 화면으로 리다이렉트
+      router.replace("/(tabs)");
+    }
+  }, [isLoaded, isSignedIn, segments, router]);
+
+  // Convex DB 유저 저장/동기화 (Convex 인증이 완전히 수립되었을 때 실행)
+  React.useEffect(() => {
+    console.log("Convex Auth State - isAuthenticated:", isAuthenticated);
+    if (isAuthenticated) {
       const syncUser = async () => {
         try {
-          await storeUser();
+          console.log("Attempting to call storeUser...");
+          const result = await storeUser();
+          console.log("storeUser success, result userId:", result);
         } catch (error) {
           console.error("Failed to sync user to Convex DB:", error);
         }
       };
       void syncUser();
-
-      if (inAuthGroup) {
-        // auth 그룹에 있다면 메인 화면으로 리다이렉트
-        router.replace("/(tabs)");
-      }
     }
-  }, [isLoaded, isSignedIn, segments, router, storeUser]);
+  }, [isAuthenticated, storeUser]);
 
   if (!isLoaded) {
     return (
