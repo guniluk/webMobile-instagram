@@ -3,7 +3,7 @@ import { api } from '@/convex/_generated/api';
 import { useAuth, useUser } from '@clerk/expo';
 import { Ionicons } from '@expo/vector-icons';
 import { useMutation, useQuery } from 'convex/react';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
   Alert,
@@ -12,6 +12,7 @@ import {
   KeyboardAvoidingView,
   Modal,
   Platform,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -19,13 +20,15 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { styles as feedStyles } from '../../styles/feed.styles';
 import { styles } from '../../styles/profile.styles';
 
 export default function Profile() {
   const { user } = useUser();
   const { signOut } = useAuth();
+  const insets = useSafeAreaInsets();
+  const router = useRouter();
   
   // Expo Router 쿼리 파라미터 (타인 프로필 조회 시 username 파라미터가 존재함)
   const { username } = useLocalSearchParams<{ username?: string }>();
@@ -36,14 +39,17 @@ export default function Profile() {
     user?.id ? { clerkId: user.id } : 'skip',
   );
 
-  // 2. 만약 username 파라미터가 주어지면 타인 프로필을 조회
+  // 본인 프로필인지 여부 판정 (username 파라미터가 없거나, 전달된 username이 본인의 username과 일치할 때)
+  const isOwnProfile = !username || (myConvexUser && username === myConvexUser.username);
+
+  // 2. 만약 username 파라미터가 주어지면 타인 프로필을 조회 (본인 프로필이 아닐 때만 타인 조회 실행)
   const targetUser = useQuery(
     api.users.getUserProfile,
-    username ? { username } : 'skip'
+    (!isOwnProfile && username) ? { username } : 'skip'
   );
 
   // 최종 노출할 프로필 유저 정보 결정
-  const profileUser = username ? targetUser : (myConvexUser ? {
+  const profileUser = !isOwnProfile ? targetUser : (myConvexUser ? {
     userId: myConvexUser._id,
     username: myConvexUser.username,
     name: myConvexUser.fullname,
@@ -71,6 +77,14 @@ export default function Profile() {
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [commentText, setCommentText] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1000);
+  }, []);
 
   const selectedPost = myPosts.find((p: any) => p.id === selectedPostId) || null;
 
@@ -82,11 +96,11 @@ export default function Profile() {
 
   // 내 정보가 로드되었을 때 폼 상태 동기화
   React.useEffect(() => {
-    if (!username && myConvexUser) {
+    if (isOwnProfile && myConvexUser) {
       setName(myConvexUser.fullname);
       setBio(myConvexUser.bio ?? '');
     }
-  }, [myConvexUser, username]);
+  }, [myConvexUser, isOwnProfile]);
 
   const handleOpenEditModal = () => {
     if (myConvexUser) {
@@ -140,6 +154,10 @@ export default function Profile() {
     }
   };
 
+  const handleGoToMyProfile = () => {
+    router.replace("/(tabs)/profile");
+  };
+
   const confirmDeletePost = (postId: string) => {
     Alert.alert(
       "Delete Post",
@@ -162,7 +180,7 @@ export default function Profile() {
   };
 
   const handleOptionsPress = (post: any) => {
-    const isMyPost = !username; // 파라미터 username이 없으면 무조건 내 프로필이므로 내 포스트
+    const isMyPost = isOwnProfile; // 본인 프로필이면 내 포스트
 
     if (isMyPost) {
       Alert.alert(
@@ -215,15 +233,12 @@ export default function Profile() {
       {/* Right: Info and Actions */}
       <View style={localStyles.rowRightContent}>
         <View style={localStyles.rowTextContainer}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text style={localStyles.rowUsername} numberOfLines={1}>
-              {post.username}
-            </Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center' }}>
             <TouchableOpacity onPress={() => handleOptionsPress(post)}>
               <Ionicons name="ellipsis-horizontal" size={16} color={COLORS.white} />
             </TouchableOpacity>
           </View>
-          <Text style={localStyles.rowCaption} numberOfLines={2}>
+          <Text style={[localStyles.rowCaption, { color: "#FACC15", fontSize: 14, fontWeight: "bold" }]} numberOfLines={2}>
             {post.caption}
           </Text>
         </View>
@@ -274,7 +289,7 @@ export default function Profile() {
           </Text>
         </View>
         {/* 본인 프로필일 때만 로그아웃 버튼 표시 */}
-        {!username && (
+        {isOwnProfile && (
           <View style={styles.headerRight}>
             <TouchableOpacity onPress={() => signOut()} style={styles.headerIcon}>
               <Ionicons name="log-out-outline" size={24} color="#ff3b30" />
@@ -286,6 +301,14 @@ export default function Profile() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 80 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={COLORS.white}
+            colors={[COLORS.primary]}
+          />
+        }
       >
         {/* Profile Info */}
         {profileUser ? (
@@ -324,15 +347,37 @@ export default function Profile() {
 
             <View style={styles.actionButtons}>
               {/* 타인 프로필일 때는 팔로우/언팔로우 버튼 노출, 본인 프로필이면 프로필 수정 버튼 노출 */}
-              {username ? (
-                <TouchableOpacity
-                  style={[styles.editButton, profileUser.isFollowing && { backgroundColor: COLORS.surface }]}
-                  onPress={handleFollow}
-                >
-                  <Text style={styles.editButtonText}>
-                    {profileUser.isFollowing ? "Following" : "Follow"}
-                  </Text>
-                </TouchableOpacity>
+              {!isOwnProfile ? (
+                <>
+                  <TouchableOpacity
+                    style={[
+                      styles.editButton,
+                      profileUser?.isFollowing
+                        ? { backgroundColor: "#ff9500" }
+                        : { backgroundColor: COLORS.primary }
+                    ]}
+                    onPress={handleFollow}
+                  >
+                    <Text
+                      style={[
+                        styles.editButtonText,
+                        {
+                          color: profileUser?.isFollowing
+                            ? COLORS.white
+                            : COLORS.background
+                        }
+                      ]}
+                    >
+                      {profileUser?.isFollowing ? "Unfollow" : "Follow"}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.editButton}
+                    onPress={handleGoToMyProfile}
+                  >
+                    <Text style={styles.editButtonText}>My Profile</Text>
+                  </TouchableOpacity>
+                </>
               ) : (
                 <TouchableOpacity
                   style={styles.editButton}
@@ -375,49 +420,55 @@ export default function Profile() {
         animationType="slide"
         transparent={true}
       >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <TouchableOpacity onPress={() => setEditModalVisible(false)}>
-                <Text style={{ color: COLORS.grey, fontSize: 16 }}>Cancel</Text>
-              </TouchableOpacity>
-              <Text style={styles.modalTitle}>Edit Profile</Text>
-              <TouchableOpacity onPress={handleSaveProfile}>
-                <Text
-                  style={{
-                    color: COLORS.primary,
-                    fontSize: 16,
-                    fontWeight: '600',
-                  }}
-                >
-                  Done
-                </Text>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+        >
+          <View style={styles.modalContainer}>
+            <View style={[styles.modalContent, { paddingTop: insets.top > 0 ? insets.top + 10 : 20 }]}>
+              <View style={styles.modalHeader}>
+                <TouchableOpacity onPress={() => setEditModalVisible(false)}>
+                  <Ionicons name="chevron-back" size={24} color={COLORS.white} />
+                </TouchableOpacity>
+                <Text style={styles.modalTitle}>Edit Profile</Text>
+                <TouchableOpacity onPress={handleSaveProfile}>
+                  <Text
+                    style={{
+                      color: COLORS.primary,
+                      fontSize: 16,
+                      fontWeight: '600',
+                    }}
+                  >
+                    Done
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Bio</Text>
+                <TextInput
+                  value={bio}
+                  onChangeText={setBio}
+                  placeholder="Bio"
+                  placeholderTextColor={COLORS.grey}
+                  multiline
+                  numberOfLines={3}
+                  style={[styles.input, styles.bioInput]}
+                  autoFocus={true}
+                />
+              </View>
+
+              <TouchableOpacity
+                style={styles.saveButton}
+                onPress={handleSaveProfile}
+              >
+                <Text style={styles.saveButtonText}>Save Changes</Text>
               </TouchableOpacity>
             </View>
-
-
-
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Bio</Text>
-              <TextInput
-                value={bio}
-                onChangeText={setBio}
-                placeholder="Bio"
-                placeholderTextColor={COLORS.grey}
-                multiline
-                numberOfLines={3}
-                style={[styles.input, styles.bioInput]}
-              />
-            </View>
-
-            <TouchableOpacity
-              style={styles.saveButton}
-              onPress={handleSaveProfile}
-            >
-              <Text style={styles.saveButtonText}>Save Changes</Text>
-            </TouchableOpacity>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Comment Modal */}
@@ -429,46 +480,48 @@ export default function Profile() {
           onRequestClose={() => setSelectedPostId(null)}
         >
           <SafeAreaView style={feedStyles.modalContainer}>
-            {/* Modal Header */}
-            <View style={feedStyles.modalHeader}>
-              <TouchableOpacity onPress={() => setSelectedPostId(null)}>
-                <Ionicons name="chevron-back" size={24} color={COLORS.white} />
-              </TouchableOpacity>
-              <Text style={feedStyles.modalTitle}>Comments</Text>
-              <View style={{ width: 24 }} />
-            </View>
-
-            {/* Comments List */}
-            <FlatList
-              data={selectedPost.comments}
-              keyExtractor={(item: any) => item.id}
-              style={feedStyles.commentsList}
-              renderItem={({ item }) => (
-                <View style={feedStyles.commentContainer}>
-                  <Image
-                    source={{ uri: item.avatar }}
-                    style={feedStyles.commentAvatar}
-                  />
-                  <View style={feedStyles.commentContent}>
-                    <Text style={feedStyles.commentUsername}>{item.username}</Text>
-                    <Text style={commentText.trim() ? feedStyles.commentText : { color: COLORS.white }}>{item.text}</Text>
-                    <Text style={feedStyles.commentTime}>{item.time}</Text>
-                  </View>
-                </View>
-              )}
-              ListEmptyComponent={
-                <View style={[feedStyles.centered, { marginTop: 40 }]}>
-                  <Text style={{ color: COLORS.grey }}>
-                    No comments yet. Be the first!
-                  </Text>
-                </View>
-              }
-            />
-
-            {/* Comment Input */}
             <KeyboardAvoidingView
               behavior={Platform.OS === "ios" ? "padding" : "height"}
+              style={{ flex: 1 }}
+              keyboardVerticalOffset={Platform.OS === "ios" ? 44 : 0}
             >
+              {/* Modal Header */}
+              <View style={feedStyles.modalHeader}>
+                <TouchableOpacity onPress={() => setSelectedPostId(null)}>
+                  <Ionicons name="chevron-back" size={24} color={COLORS.white} />
+                </TouchableOpacity>
+                <Text style={feedStyles.modalTitle}>Comments</Text>
+                <View style={{ width: 24 }} />
+              </View>
+
+              {/* Comments List */}
+              <FlatList
+                data={selectedPost.comments}
+                keyExtractor={(item: any) => item.id}
+                style={feedStyles.commentsList}
+                renderItem={({ item }) => (
+                  <View style={feedStyles.commentContainer}>
+                    <Image
+                      source={{ uri: item.avatar }}
+                      style={feedStyles.commentAvatar}
+                    />
+                    <View style={feedStyles.commentContent}>
+                      <Text style={feedStyles.commentUsername}>{item.username}</Text>
+                      <Text style={commentText.trim() ? feedStyles.commentText : { color: COLORS.white }}>{item.text}</Text>
+                      <Text style={feedStyles.commentTime}>{item.time}</Text>
+                    </View>
+                  </View>
+                )}
+                ListEmptyComponent={
+                  <View style={[feedStyles.centered, { marginTop: 40 }]}>
+                    <Text style={{ color: COLORS.grey }}>
+                      No comments yet. Be the first!
+                    </Text>
+                  </View>
+                }
+              />
+
+              {/* Comment Input */}
               <View style={feedStyles.commentInput}>
                 <Image
                   source={{ uri: currentUser.avatar }}

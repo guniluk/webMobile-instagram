@@ -61,6 +61,7 @@ export const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
+    paddingBottom: 120,
   },
   imageSection: {
     width: width,
@@ -109,5 +110,24 @@ export const styles = StyleSheet.create({
     fontSize: 16,
     paddingTop: 8,
     minHeight: 40,
+  },
+  backButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    minWidth: 60,
+    alignItems: "flex-start",
+    justifyContent: "center",
+  },
+  deleteImageButton: {
+    position: "absolute",
+    top: 16,
+    right: 16,
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 10,
   },
 });

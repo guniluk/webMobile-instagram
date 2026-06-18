@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Image,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -22,6 +23,7 @@ import { api } from "../../convex/_generated/api";
 export default function Create() {
   const { user } = useUser();
   const router = useRouter();
+  const scrollViewRef = useRef<ScrollView>(null);
   
   const generateUploadUrl = useMutation(api.posts.generateUploadUrl);
   const createPost = useMutation(api.posts.createPost);
@@ -29,6 +31,28 @@ export default function Create() {
   const [image, setImage] = useState<string | null>(null);
   const [caption, setCaption] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.push('/(tabs)');
+    }
+  };
+
+  const scrollToBottom = () => {
+    setTimeout(() => {
+      scrollViewRef.current?.scrollToEnd({ animated: true });
+    }, 150);
+  };
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const showSubscription = Keyboard.addListener(showEvent, scrollToBottom);
+    return () => {
+      showSubscription.remove();
+    };
+  }, []);
 
   const currentUser = {
     username: user?.username || user?.firstName || 'me_instagram',
@@ -103,25 +127,30 @@ export default function Create() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1 }}
-      >
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>New Post</Text>
-          <TouchableOpacity
-            onPress={handleShare}
-            disabled={!image || isSubmitting}
-            style={[styles.shareButton, (!image || isSubmitting) && styles.shareButtonDisabled]}
-          >
-            <Text style={[styles.shareText, (!image || isSubmitting) && styles.shareTextDisabled]}>
-              {isSubmitting ? 'Sharing...' : 'Share'}
-            </Text>
-          </TouchableOpacity>
-        </View>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color={COLORS.white} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>New Post</Text>
+        <TouchableOpacity
+          onPress={handleShare}
+          disabled={!image || isSubmitting}
+          style={[styles.shareButton, (!image || isSubmitting) && styles.shareButtonDisabled]}
+        >
+          <Text style={[styles.shareText, (!image || isSubmitting) && styles.shareTextDisabled]}>
+            {isSubmitting ? 'Sharing...' : 'Share'}
+          </Text>
+        </TouchableOpacity>
+      </View>
 
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={{ flex: 1 }}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      >
         <ScrollView
+          ref={scrollViewRef}
           style={[styles.content, isSubmitting && styles.contentDisabled]}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
@@ -129,6 +158,9 @@ export default function Create() {
           {image ? (
             <View style={styles.imageSection}>
               <Image source={{ uri: image }} style={styles.previewImage} />
+              <TouchableOpacity style={styles.deleteImageButton} onPress={() => setImage(null)}>
+                <Ionicons name="close" size={20} color={COLORS.white} />
+              </TouchableOpacity>
               <TouchableOpacity style={styles.changeImageButton} onPress={selectImage}>
                 <Ionicons name="camera-reverse" size={20} color={COLORS.white} />
                 <Text style={styles.changeImageText}>Change</Text>
@@ -151,6 +183,7 @@ export default function Create() {
                 value={caption}
                 onChangeText={setCaption}
                 style={styles.captionInput}
+                onFocus={scrollToBottom}
               />
             </View>
           </View>

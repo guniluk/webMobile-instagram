@@ -84,6 +84,26 @@ export const getBookmarkedPosts = query({
         )
         .unique();
 
+      // 댓글 리스트도 최신 순으로 일부 혹은 전체 반환
+      const postComments = await ctx.db
+        .query("comments")
+        .withIndex("by_post", (q) => q.eq("postId", post._id))
+        .collect();
+
+      const commentsWithUser = [];
+      for (const comment of postComments) {
+        const commentUser = await ctx.db.get(comment.userId);
+        if (commentUser) {
+          commentsWithUser.push({
+            id: comment._id,
+            username: commentUser.username,
+            avatar: commentUser.image,
+            text: comment.content,
+            time: "방금 전", // UI에서 적절히 표기
+          });
+        }
+      }
+
       results.push({
         id: post._id,
         authorId: author._id,
@@ -96,7 +116,7 @@ export const getBookmarkedPosts = query({
         isFollowing: !!follow,
         caption: post.caption || "",
         timeAgo: "방금 전",
-        comments: [],
+        comments: commentsWithUser,
       });
     }
 

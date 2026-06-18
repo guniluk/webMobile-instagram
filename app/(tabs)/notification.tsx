@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   FlatList,
   Image,
+  RefreshControl,
   Text,
   View,
   TouchableOpacity,
@@ -16,6 +17,15 @@ import { api } from "../../convex/_generated/api";
 export default function Notifications() {
   const notifications = useQuery(api.notifications.getNotifications) || [];
   const deleteNotificationMutation = useMutation(api.notifications.deleteNotification);
+
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1000);
+  }, []);
 
   const handleDeleteNotification = async (notificationId: string) => {
     try {
@@ -88,6 +98,14 @@ export default function Notifications() {
         renderItem={renderItem}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContainer}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={COLORS.white}
+            colors={[COLORS.primary]}
+          />
+        }
         ListEmptyComponent={
           <View style={[styles.centered, { marginTop: 40 }]}>
             <Ionicons name="heart-dislike-outline" size={48} color={COLORS.grey} />

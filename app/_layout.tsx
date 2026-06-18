@@ -1,8 +1,8 @@
 import { COLORS } from "@/constants/theme";
-import { ClerkProvider, useAuth } from "@clerk/expo";
-import { ConvexReactClient, useMutation, useConvexAuth } from "convex/react";
-import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { api } from "@/convex/_generated/api";
+import { ClerkProvider, useAuth } from "@clerk/expo";
+import { ConvexReactClient, useConvexAuth, useMutation } from "convex/react";
+import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React from "react";
@@ -46,7 +46,12 @@ function MainLayout() {
       const checkToken = async () => {
         try {
           const token = await getToken({ template: "convex" });
-          console.log("Clerk Token Debug - 'convex' template token:", token ? `Token exists (Starts with: ${token.substring(0, 15)}...)` : "Token is null/undefined");
+          console.log(
+            "Clerk Token Debug - 'convex' template token:",
+            token
+              ? `Token exists (Starts with: ${token.substring(0, 15)}...)`
+              : "Token is null/undefined",
+          );
         } catch (error) {
           console.error("Clerk Token Debug - Error fetching token:", error);
         }
@@ -57,7 +62,12 @@ function MainLayout() {
 
   // 로그인 상태에 따른 라우팅 제어
   React.useEffect(() => {
-    console.log("Clerk Auth State - isLoaded:", isLoaded, "isSignedIn:", isSignedIn);
+    console.log(
+      "Clerk Auth State - isLoaded:",
+      isLoaded,
+      "isSignedIn:",
+      isSignedIn,
+    );
     if (!isLoaded) return;
 
     const inAuthGroup = segments[0] === "(auth)";

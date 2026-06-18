@@ -10,19 +10,22 @@ import {
   KeyboardAvoidingView,
   Modal,
   Platform,
+  RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api } from '../../convex/_generated/api';
 import { styles as feedStyles } from '../../styles/feed.styles';
 import { styles as profileStyles } from '../../styles/profile.styles';
 
 export default function Bookmarks() {
   const { user } = useUser();
+  const insets = useSafeAreaInsets();
   const bookmarkedPosts = useQuery(api.bookmarks.getBookmarkedPosts) || [];
   
   // 로그인한 사용자 정보 조회
@@ -38,9 +41,27 @@ export default function Bookmarks() {
   const deletePostMutation = useMutation(api.posts.deletePost);
 
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const [detailPostId, setDetailPostId] = useState<string | null>(null);
+  const [prevDetailPostId, setPrevDetailPostId] = useState<string | null>(null);
   const [commentText, setCommentText] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1000);
+  }, []);
 
   const selectedPost = bookmarkedPosts.find((p: any) => p.id === selectedPostId) || null;
+  const detailPost = bookmarkedPosts.find((p: any) => p.id === detailPostId) || null;
+
+  // 상세조회 중인 포스트가 북마크 해제되어 목록에서 사라지면 자동으로 상세 화면 닫기
+  React.useEffect(() => {
+    if (detailPostId && !detailPost) {
+      setDetailPostId(null);
+    }
+  }, [detailPost, detailPostId]);
 
   const currentUser = {
     username: user?.username || user?.firstName || 'me_instagram',
@@ -70,6 +91,14 @@ export default function Bookmarks() {
       setCommentText("");
     } catch (error) {
       console.error("Failed to add comment:", error);
+    }
+  };
+
+  const closeCommentModal = () => {
+    setSelectedPostId(null);
+    if (prevDetailPostId) {
+      setDetailPostId(prevDetailPostId);
+      setPrevDetailPostId(null);
     }
   };
 
@@ -142,20 +171,24 @@ export default function Bookmarks() {
   const renderPost = ({ item }: { item: any }) => (
     <View key={item.id} style={localStyles.rowCard}>
       {/* Left: Post Image */}
-      <Image
-        source={{ uri: item.image }}
-        style={localStyles.rowImage}
-        resizeMode="cover"
-      />
+      <TouchableOpacity onPress={() => setDetailPostId(item.id)}>
+        <Image
+          source={{ uri: item.image }}
+          style={localStyles.rowImage}
+          resizeMode="cover"
+        />
+      </TouchableOpacity>
 
       {/* Right: Info and Actions */}
       <View style={localStyles.rowRightContent}>
         {/* Top: Username & Caption */}
         <View style={localStyles.rowTextContainer}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text style={localStyles.rowUsername} numberOfLines={1}>
-              {item.username}
-            </Text>
+            <TouchableOpacity onPress={() => setDetailPostId(item.id)}>
+              <Text style={localStyles.rowUsername} numberOfLines={1}>
+                {item.username}
+              </Text>
+            </TouchableOpacity>
             <TouchableOpacity onPress={() => handleOptionsPress(item)}>
               <Ionicons name="ellipsis-horizontal" size={16} color={COLORS.white} />
             </TouchableOpacity>
@@ -196,9 +229,17 @@ export default function Bookmarks() {
         </View>
 
         {/* Bottom: View comments link */}
-        <TouchableOpacity onPress={() => setSelectedPostId(item.id)}>
-          <Text style={localStyles.rowCommentsText}>Add or view comments...</Text>
-        </TouchableOpacity>
+        {item.comments && item.comments.length > 0 ? (
+          <TouchableOpacity onPress={() => setSelectedPostId(item.id)}>
+            <Text style={localStyles.rowCommentsText}>
+              View all {item.comments.length} comments
+            </Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity onPress={() => setSelectedPostId(item.id)}>
+            <Text style={localStyles.rowCommentsText}>Add a comment...</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
@@ -222,6 +263,14 @@ export default function Bookmarks() {
           keyExtractor={(item) => item.id}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 80, paddingTop: 12 }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={COLORS.white}
+              colors={[COLORS.primary]}
+            />
+          }
         />
       )}
 
@@ -231,49 +280,51 @@ export default function Bookmarks() {
           visible={true}
           animationType="slide"
           transparent={false}
-          onRequestClose={() => setSelectedPostId(null)}
+          onRequestClose={closeCommentModal}
         >
           <SafeAreaView style={feedStyles.modalContainer}>
-            {/* Modal Header */}
-            <View style={feedStyles.modalHeader}>
-              <TouchableOpacity onPress={() => setSelectedPostId(null)}>
-                <Ionicons name="chevron-back" size={24} color={COLORS.white} />
-              </TouchableOpacity>
-              <Text style={feedStyles.modalTitle}>Comments</Text>
-              <View style={{ width: 24 }} />
-            </View>
-
-            {/* Comments List */}
-            <FlatList
-              data={selectedPost.comments}
-              keyExtractor={(item: any) => item.id}
-              style={feedStyles.commentsList}
-              renderItem={({ item }) => (
-                <View style={feedStyles.commentContainer}>
-                  <Image
-                    source={{ uri: item.avatar }}
-                    style={feedStyles.commentAvatar}
-                  />
-                  <View style={feedStyles.commentContent}>
-                    <Text style={feedStyles.commentUsername}>{item.username}</Text>
-                    <Text style={commentText.trim() ? feedStyles.commentText : { color: COLORS.white }}>{item.text}</Text>
-                    <Text style={feedStyles.commentTime}>{item.time}</Text>
-                  </View>
-                </View>
-              )}
-              ListEmptyComponent={
-                <View style={[feedStyles.centered, { marginTop: 40 }]}>
-                  <Text style={{ color: COLORS.grey }}>
-                    No comments yet. Be the first!
-                  </Text>
-                </View>
-              }
-            />
-
-            {/* Comment Input */}
             <KeyboardAvoidingView
               behavior={Platform.OS === "ios" ? "padding" : "height"}
+              style={{ flex: 1 }}
+              keyboardVerticalOffset={Platform.OS === "ios" ? 44 : 0}
             >
+              {/* Modal Header */}
+              <View style={feedStyles.modalHeader}>
+                <TouchableOpacity onPress={closeCommentModal}>
+                  <Ionicons name="chevron-back" size={24} color={COLORS.white} />
+                </TouchableOpacity>
+                <Text style={feedStyles.modalTitle}>Comments</Text>
+                <View style={{ width: 24 }} />
+              </View>
+
+              {/* Comments List */}
+              <FlatList
+                data={selectedPost.comments}
+                keyExtractor={(item: any) => item.id}
+                style={feedStyles.commentsList}
+                renderItem={({ item }) => (
+                  <View style={feedStyles.commentContainer}>
+                    <Image
+                      source={{ uri: item.avatar }}
+                      style={feedStyles.commentAvatar}
+                    />
+                    <View style={feedStyles.commentContent}>
+                      <Text style={feedStyles.commentUsername}>{item.username}</Text>
+                      <Text style={commentText.trim() ? feedStyles.commentText : { color: COLORS.white }}>{item.text}</Text>
+                      <Text style={feedStyles.commentTime}>{item.time}</Text>
+                    </View>
+                  </View>
+                )}
+                ListEmptyComponent={
+                  <View style={[feedStyles.centered, { marginTop: 40 }]}>
+                    <Text style={{ color: COLORS.grey }}>
+                      No comments yet. Be the first!
+                    </Text>
+                  </View>
+                }
+              />
+
+              {/* Comment Input */}
               <View style={feedStyles.commentInput}>
                 <Image
                   source={{ uri: currentUser.avatar }}
@@ -296,6 +347,157 @@ export default function Bookmarks() {
               </View>
             </KeyboardAvoidingView>
           </SafeAreaView>
+        </Modal>
+      )}
+
+      {/* Post Detail Modal */}
+      {detailPost && (
+        <Modal
+          visible={true}
+          animationType="slide"
+          transparent={false}
+          onRequestClose={() => setDetailPostId(null)}
+        >
+          <View style={{ flex: 1, backgroundColor: COLORS.background }}>
+            {/* Detail Header */}
+            <View style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+              paddingHorizontal: 16,
+              paddingTop: insets.top > 0 ? insets.top : 20,
+              height: insets.top > 0 ? 56 + insets.top : 56,
+              borderBottomWidth: 0.5,
+              borderBottomColor: COLORS.surface,
+            }}>
+              <TouchableOpacity onPress={() => setDetailPostId(null)} style={{ padding: 4 }}>
+                <Ionicons name="chevron-back" size={24} color={COLORS.white} />
+              </TouchableOpacity>
+              <Text style={{ color: COLORS.white, fontSize: 16, fontWeight: "600" }}>Post</Text>
+              <View style={{ width: 24 }} />
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+              {/* Post Header */}
+              <View style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: 12,
+              }}>
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                  <Image source={{ uri: detailPost.userAvatar }} style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 16,
+                    marginRight: 8,
+                  }} />
+                  <Text style={{
+                    fontSize: 14,
+                    fontWeight: "600",
+                    color: COLORS.white,
+                  }}>{detailPost.username}</Text>
+                </View>
+              </View>
+
+              {/* Post Image */}
+              <Image
+                source={{ uri: detailPost.image }}
+                style={{
+                  width: "100%",
+                  aspectRatio: 1,
+                }}
+                resizeMode="cover"
+              />
+
+              {/* Post Actions */}
+              <View style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+                paddingHorizontal: 12,
+                paddingVertical: 12,
+              }}>
+                <View style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 16,
+                }}>
+                  <TouchableOpacity onPress={() => handleLike(detailPost.id)}>
+                    <Ionicons
+                      name={detailPost.isLiked ? "heart" : "heart-outline"}
+                      size={24}
+                      color={detailPost.isLiked ? "#ff3040" : COLORS.white}
+                    />
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => {
+                    setPrevDetailPostId(detailPost.id);
+                    setDetailPostId(null);
+                    setSelectedPostId(detailPost.id);
+                  }}>
+                    <Ionicons
+                      name="chatbubble-outline"
+                      size={23}
+                      color={COLORS.white}
+                    />
+                  </TouchableOpacity>
+                </View>
+                <TouchableOpacity onPress={() => handleBookmark(detailPost.id)}>
+                  <Ionicons
+                    name={detailPost.isBookmarked ? "bookmark" : "bookmark-outline"}
+                    size={23}
+                    color={COLORS.white}
+                  />
+                </TouchableOpacity>
+              </View>
+
+              {/* Post Info */}
+              <View style={{ paddingHorizontal: 12 }}>
+                <Text style={{
+                  fontSize: 14,
+                  fontWeight: "600",
+                  color: COLORS.white,
+                  marginBottom: 6,
+                }}>
+                  {detailPost.likes.toLocaleString()} likes
+                </Text>
+                <View style={detailPost.caption?.trim() ? { flexDirection: "row", flexWrap: "wrap", marginBottom: 6 } : { flexDirection: 'row', alignItems: 'center' }}>
+                  <Text style={{
+                    color: "#FACC15",
+                    fontSize: 16,
+                    fontWeight: "bold",
+                  }}>{detailPost.caption}</Text>
+                </View>
+
+                {detailPost.comments && detailPost.comments.length > 0 ? (
+                  <TouchableOpacity onPress={() => {
+                    setPrevDetailPostId(detailPost.id);
+                    setDetailPostId(null);
+                    setSelectedPostId(detailPost.id);
+                  }}>
+                    <Text style={{ color: COLORS.grey, fontSize: 13, marginTop: 4, marginBottom: 4 }}>
+                      View all {detailPost.comments.length} comments
+                    </Text>
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity onPress={() => {
+                    setPrevDetailPostId(detailPost.id);
+                    setDetailPostId(null);
+                    setSelectedPostId(detailPost.id);
+                  }}>
+                    <Text style={{ color: COLORS.grey, fontSize: 13, marginTop: 4, marginBottom: 4 }}>Add a comment...</Text>
+                  </TouchableOpacity>
+                )}
+
+                <Text style={{
+                  fontSize: 12,
+                  color: COLORS.grey,
+                  marginBottom: 8,
+                  marginTop: 4,
+                }}>{detailPost.timeAgo || "방금 전"}</Text>
+              </View>
+            </ScrollView>
+          </View>
         </Modal>
       )}
     </SafeAreaView>

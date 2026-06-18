@@ -201,3 +201,50 @@ export const getUserProfile = query({
     };
   },
 });
+
+/**
+ * 7. 가입된 모든 유저 목록 조회 (로그인한 유저 본인은 제외하고, 팔로우 여부를 확인해서 반환)
+ */
+export const getAllUsers = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    let currentUser = null;
+
+    if (identity) {
+      currentUser = await ctx.db
+        .query("users")
+        .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+        .unique();
+    }
+
+    const users = await ctx.db.query("users").collect();
+
+    const results = [];
+    for (const user of users) {
+      let isFollowing = false;
+      if (currentUser) {
+        if (currentUser._id === user._id) continue; // 나 자신은 제외
+        
+        const follow = await ctx.db
+          .query("follows")
+          .withIndex("by_both", (q) =>
+            q.eq("followerId", currentUser._id).eq("followingId", user._id)
+          )
+          .unique();
+        isFollowing = !!follow;
+      }
+
+      results.push({
+        id: user._id,
+        authorId: user._id,
+        username: user.username,
+        avatar: user.image,
+        hasStory: true,
+        isFollowing: isFollowing,
+      });
+    }
+
+    return results;
+  },
+});
