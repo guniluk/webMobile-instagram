@@ -1,22 +1,24 @@
+import { COLORS } from '@/constants/theme';
+import { Ionicons } from '@expo/vector-icons';
+import { useMutation, useQuery } from 'convex/react';
 import React, { useState } from 'react';
 import {
   FlatList,
   Image,
   RefreshControl,
   Text,
-  View,
   TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { api } from '../../convex/_generated/api';
 import { styles } from '../../styles/notifications.styles';
-import { COLORS } from '@/constants/theme';
-import { useMutation, useQuery } from "convex/react";
-import { api } from "../../convex/_generated/api";
 
 export default function Notifications() {
   const notifications = useQuery(api.notifications.getNotifications) || [];
-  const deleteNotificationMutation = useMutation(api.notifications.deleteNotification);
+  const deleteNotificationMutation = useMutation(
+    api.notifications.deleteNotification,
+  );
 
   const [refreshing, setRefreshing] = useState(false);
 
@@ -29,9 +31,11 @@ export default function Notifications() {
 
   const handleDeleteNotification = async (notificationId: string) => {
     try {
-      await deleteNotificationMutation({ notificationId: notificationId as any });
+      await deleteNotificationMutation({
+        notificationId: notificationId as any,
+      });
     } catch (error) {
-      console.error("Failed to delete notification:", error);
+      console.error('Failed to delete notification:', error);
     }
   };
 
@@ -54,16 +58,13 @@ export default function Notifications() {
         {/* Avatar with Badge */}
         <View style={styles.avatarContainer}>
           <Image source={{ uri: item.avatar }} style={styles.avatar} />
-          <View style={styles.iconBadge}>
-            {getBadgeIcon(item.type)}
-          </View>
+          <View style={styles.iconBadge}>{getBadgeIcon(item.type)}</View>
         </View>
 
         {/* Info Text */}
         <View style={styles.notificationInfo}>
           <Text style={styles.username}>
-            {item.username}{' '}
-            <Text style={styles.action}>{item.action}</Text>
+            {item.username} <Text style={styles.action}>{item.action}</Text>
           </Text>
           <Text style={styles.timeAgo}>{item.timeAgo}</Text>
         </View>
@@ -74,9 +75,9 @@ export default function Notifications() {
         {item.postImage && (
           <Image source={{ uri: item.postImage }} style={styles.postImage} />
         )}
-        
+
         {/* Delete Button */}
-        <TouchableOpacity 
+        <TouchableOpacity
           onPress={() => handleDeleteNotification(item.id)}
           style={{ padding: 4 }}
         >
@@ -108,8 +109,14 @@ export default function Notifications() {
         }
         ListEmptyComponent={
           <View style={[styles.centered, { marginTop: 40 }]}>
-            <Ionicons name="heart-dislike-outline" size={48} color={COLORS.grey} />
-            <Text style={{ color: COLORS.grey, marginTop: 12 }}>No notifications yet</Text>
+            <Ionicons
+              name="heart-dislike-outline"
+              size={48}
+              color={COLORS.grey}
+            />
+            <Text style={{ color: COLORS.grey, marginTop: 12 }}>
+              No notifications yet
+            </Text>
           </View>
         }
       />

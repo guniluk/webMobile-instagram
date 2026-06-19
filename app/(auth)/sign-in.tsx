@@ -1,10 +1,10 @@
-import { COLORS } from "@/constants/theme";
-import { styles as authStyles } from "@/styles/auth.styles";
-import { useSSO } from "@clerk/expo";
-import { Ionicons } from "@expo/vector-icons";
-import * as AuthSession from "expo-auth-session";
-import * as WebBrowser from "expo-web-browser";
-import React from "react";
+import { COLORS } from '@/constants/theme';
+import { styles as authStyles } from '@/styles/auth.styles';
+import { useSSO } from '@clerk/expo';
+import { Ionicons } from '@expo/vector-icons';
+import * as AuthSession from 'expo-auth-session';
+import * as WebBrowser from 'expo-web-browser';
+import React from 'react';
 import {
   ActivityIndicator,
   Platform,
@@ -12,15 +12,15 @@ import {
   StyleSheet,
   Text,
   View,
-} from "react-native";
+} from 'react-native';
 
 // 모바일 웹브라우저 세션 완료 처리 (인증 완료 후 앱 복귀 리디렉션 감지용)
 WebBrowser.maybeCompleteAuthSession();
 
-// 웹브라우저 웜업 (안드로이드 UX 향상)
 export default function SignInScreen() {
+  // 웹브라우저 웜업 (안드로이드 UX 향상)
   React.useEffect(() => {
-    if (Platform.OS === "android") {
+    if (Platform.OS === 'android') {
       void WebBrowser.warmUpAsync();
       return () => {
         void WebBrowser.coolDownAsync();
@@ -36,11 +36,11 @@ export default function SignInScreen() {
       setIsLoading(true);
       // Expo Go와 Development Build 모두 호환되는 Redirect URL 생성
       const redirectUrl = AuthSession.makeRedirectUri({
-        scheme: "webmobileinstagram",
-        path: "(tabs)",
+        scheme: 'webmobileinstagram',
+        path: '(tabs)',
       });
       const { createdSessionId, setActive } = await startSSOFlow({
-        strategy: "oauth_google",
+        strategy: 'oauth_google',
         redirectUrl,
       });
 
@@ -48,7 +48,7 @@ export default function SignInScreen() {
         await setActive({ session: createdSessionId });
       }
     } catch (err) {
-      console.error("Google Sign-In Error:", err);
+      console.error('Google Sign-In Error:', err);
     } finally {
       setIsLoading(false);
     }
@@ -97,10 +97,10 @@ export default function SignInScreen() {
 
 const localStyles = StyleSheet.create({
   footerPosition: {
-    position: "absolute",
+    position: 'absolute',
     bottom: 40,
     left: 40,
     right: 40,
-    alignItems: "center",
+    alignItems: 'center',
   },
 });

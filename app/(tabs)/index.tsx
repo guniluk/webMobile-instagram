@@ -1,9 +1,9 @@
-import { COLORS } from "@/constants/theme";
-import { useAuth, useUser } from "@clerk/expo";
-import { Ionicons } from "@expo/vector-icons";
-import { useMutation, useQuery } from "convex/react";
-import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import { COLORS } from '@/constants/theme';
+import { useAuth, useUser } from '@clerk/expo';
+import { Ionicons } from '@expo/vector-icons';
+import { useMutation, useQuery } from 'convex/react';
+import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
 import {
   Alert,
   FlatList,
@@ -17,10 +17,10 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { api } from "../../convex/_generated/api";
-import { styles } from "../../styles/feed.styles";
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { api } from '../../convex/_generated/api';
+import { styles } from '../../styles/feed.styles';
 
 export default function Index() {
   const { user } = useUser();
@@ -31,7 +31,7 @@ export default function Index() {
   // 로그인한 사용자 정보 조회
   const convexUser = useQuery(
     api.users.getUserByClerkId,
-    user?.id ? { clerkId: user.id } : "skip",
+    user?.id ? { clerkId: user.id } : 'skip',
   );
 
   const toggleLikeMutation = useMutation(api.likes.toggleLike);
@@ -41,15 +41,15 @@ export default function Index() {
   const deletePostMutation = useMutation(api.posts.deletePost);
 
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
-  const [commentText, setCommentText] = useState("");
+  const [commentText, setCommentText] = useState('');
   const [refreshing, setRefreshing] = useState(false);
 
   const handleUserProfilePress = (postUsername: string) => {
     if (convexUser && postUsername === convexUser.username) {
-      router.push("/(tabs)/profile");
+      router.push('/(tabs)/profile');
     } else {
       router.push({
-        pathname: "/(tabs)/profile",
+        pathname: '/(tabs)/profile',
         params: { username: postUsername },
       });
     }
@@ -68,17 +68,17 @@ export default function Index() {
   const stories = useQuery(api.users.getAllUsers) || [];
 
   const currentUser = {
-    username: user?.username || user?.firstName || "me_instagram",
+    username: user?.username || user?.firstName || 'me_instagram',
     avatar:
       user?.imageUrl ||
-      "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150",
+      'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
   };
 
   const handleLike = async (postId: string) => {
     try {
       await toggleLikeMutation({ postId: postId as any });
     } catch (error) {
-      console.error("Failed to toggle like:", error);
+      console.error('Failed to toggle like:', error);
     }
   };
 
@@ -86,7 +86,7 @@ export default function Index() {
     try {
       await toggleBookmarkMutation({ postId: postId as any });
     } catch (error) {
-      console.error("Failed to toggle bookmark:", error);
+      console.error('Failed to toggle bookmark:', error);
     }
   };
 
@@ -97,9 +97,9 @@ export default function Index() {
         postId: selectedPostId as any,
         content: commentText,
       });
-      setCommentText("");
+      setCommentText('');
     } catch (error) {
-      console.error("Failed to add comment:", error);
+      console.error('Failed to add comment:', error);
     }
   };
 
@@ -107,7 +107,7 @@ export default function Index() {
     try {
       await toggleFollowMutation({ followingId: authorId as any });
     } catch (error) {
-      console.error("Failed to toggle follow:", error);
+      console.error('Failed to toggle follow:', error);
     }
   };
 
@@ -117,18 +117,18 @@ export default function Index() {
 
   const confirmDeletePost = (postId: string) => {
     Alert.alert(
-      "Delete Post",
-      "Are you sure you want to delete this post? This will permanently delete the post, image, likes, comments, and bookmarks.",
+      'Delete Post',
+      'Are you sure you want to delete this post? This will permanently delete the post, image, likes, comments, and bookmarks.',
       [
-        { text: "Cancel", style: "cancel" },
+        { text: 'Cancel', style: 'cancel' },
         {
-          text: "Delete",
-          style: "destructive",
+          text: 'Delete',
+          style: 'destructive',
           onPress: async () => {
             try {
               await deletePostMutation({ postId: postId as any });
             } catch (err) {
-              console.error("Failed to delete post:", err);
+              console.error('Failed to delete post:', err);
             }
           },
         },
@@ -182,11 +182,11 @@ export default function Index() {
                   paddingHorizontal: 12,
                   paddingVertical: 6,
                   borderRadius: 6,
-                  justifyContent: "center",
-                  alignItems: "center",
+                  justifyContent: 'center',
+                  alignItems: 'center',
                 },
                 item.isFollowing
-                  ? { backgroundColor: "#ff9500" }
+                  ? { backgroundColor: '#ff9500' }
                   : { backgroundColor: COLORS.primary },
               ]}
               onPress={() => handleFollow(item.authorId)}
@@ -194,11 +194,11 @@ export default function Index() {
               <Text
                 style={{
                   fontSize: 12,
-                  fontWeight: "600",
+                  fontWeight: '600',
                   color: item.isFollowing ? COLORS.white : COLORS.background,
                 }}
               >
-                {item.isFollowing ? "Unfollow" : "Follow"}
+                {item.isFollowing ? 'Unfollow' : 'Follow'}
               </Text>
             </TouchableOpacity>
           )}
@@ -216,9 +216,9 @@ export default function Index() {
           <View style={styles.postActionsLeft}>
             <TouchableOpacity onPress={() => handleLike(item.id)}>
               <Ionicons
-                name={item.isLiked ? "heart" : "heart-outline"}
+                name={item.isLiked ? 'heart' : 'heart-outline'}
                 size={24}
-                color={item.isLiked ? "#ff3040" : COLORS.white}
+                color={item.isLiked ? '#ff3040' : COLORS.white}
               />
             </TouchableOpacity>
             <TouchableOpacity onPress={() => setSelectedPostId(item.id)}>
@@ -231,7 +231,7 @@ export default function Index() {
           </View>
           <TouchableOpacity onPress={() => handleBookmark(item.id)}>
             <Ionicons
-              name={item.isBookmarked ? "bookmark" : "bookmark-outline"}
+              name={item.isBookmarked ? 'bookmark' : 'bookmark-outline'}
               size={23}
               color={COLORS.white}
             />
@@ -247,13 +247,13 @@ export default function Index() {
             style={
               item.caption?.trim()
                 ? styles.captionContainer
-                : { flexDirection: "row", alignItems: "center" }
+                : { flexDirection: 'row', alignItems: 'center' }
             }
           >
             <Text
               style={[
                 styles.captionText,
-                { color: "#FACC15", fontSize: 16, fontWeight: "bold" },
+                { color: '#FACC15', fontSize: 16, fontWeight: 'bold' },
               ]}
             >
               {item.caption}
@@ -283,7 +283,7 @@ export default function Index() {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>BYH Instagram</Text>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
           <TouchableOpacity onPress={() => signOut()}>
             <Ionicons name="log-out-outline" size={24} color="#ff3b30" />
           </TouchableOpacity>
@@ -326,9 +326,9 @@ export default function Index() {
         >
           <SafeAreaView style={styles.modalContainer}>
             <KeyboardAvoidingView
-              behavior={Platform.OS === "ios" ? "padding" : "height"}
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
               style={{ flex: 1 }}
-              keyboardVerticalOffset={Platform.OS === "ios" ? 44 : 0}
+              keyboardVerticalOffset={Platform.OS === 'ios' ? 44 : 0}
             >
               {/* Modal Header */}
               <View style={styles.modalHeader}>

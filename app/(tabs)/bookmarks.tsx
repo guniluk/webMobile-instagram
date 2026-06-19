@@ -2,6 +2,7 @@ import { COLORS } from '@/constants/theme';
 import { useUser } from '@clerk/expo';
 import { Ionicons } from '@expo/vector-icons';
 import { useMutation, useQuery } from 'convex/react';
+import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
   Alert,
@@ -26,6 +27,7 @@ import { styles as profileStyles } from '../../styles/profile.styles';
 export default function Bookmarks() {
   const { user } = useUser();
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const bookmarkedPosts = useQuery(api.bookmarks.getBookmarkedPosts) || [];
   
   // 로그인한 사용자 정보 조회
@@ -110,6 +112,17 @@ export default function Bookmarks() {
     }
   };
 
+  const handleUserProfilePress = (postUsername: string) => {
+    if (convexUser && postUsername === convexUser.username) {
+      router.push('/(tabs)/profile');
+    } else {
+      router.push({
+        pathname: '/(tabs)/profile',
+        params: { username: postUsername },
+      });
+    }
+  };
+
   const confirmDeletePost = (postId: string) => {
     Alert.alert(
       "Delete Post",
@@ -184,7 +197,7 @@ export default function Bookmarks() {
         {/* Top: Username & Caption */}
         <View style={localStyles.rowTextContainer}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <TouchableOpacity onPress={() => setDetailPostId(item.id)}>
+            <TouchableOpacity onPress={() => handleUserProfilePress(item.username)}>
               <Text style={localStyles.rowUsername} numberOfLines={1}>
                 {item.username}
               </Text>
@@ -385,7 +398,13 @@ export default function Bookmarks() {
                 justifyContent: "space-between",
                 padding: 12,
               }}>
-                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <TouchableOpacity 
+                  style={{ flexDirection: "row", alignItems: "center" }}
+                  onPress={() => {
+                    setDetailPostId(null);
+                    handleUserProfilePress(detailPost.username);
+                  }}
+                >
                   <Image source={{ uri: detailPost.userAvatar }} style={{
                     width: 32,
                     height: 32,
@@ -397,7 +416,7 @@ export default function Bookmarks() {
                     fontWeight: "600",
                     color: COLORS.white,
                   }}>{detailPost.username}</Text>
-                </View>
+                </TouchableOpacity>
               </View>
 
               {/* Post Image */}
@@ -556,7 +575,8 @@ const localStyles = StyleSheet.create({
     marginBottom: 1,
   },
   rowCaption: {
-    color: COLORS.grey,
+    color: '#FACC15',
+    fontWeight: 'bold',
     fontSize: 12,
     lineHeight: 15,
   },

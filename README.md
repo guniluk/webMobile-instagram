@@ -191,7 +191,7 @@ npx expo install @clerk/expo expo-secure-store expo-auth-session expo-web-browse
 ### 3단계: 환경 변수 등록 및 앱 딥링크 등록
 
 #### ① `.env.local` 파일 생성
-프로젝트 루트 디렉토리에 [.env.local](file:///Users/guniluk/Desktop/CODING/webMobile-instagram/.env.local) 파일을 만들고, 1단계에서 얻은 API 키를 입력합니다.
+프로젝트 루트 디렉토리에 [.env.local](file:///Users/guniluk/Desktop/CLI/webMobile-instagram/.env.local) 파일을 만들고, 1단계에서 얻은 API 키를 입력합니다.
 ```env
 # 프로젝트 루트 폴더/.env.local
 EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_자신의_Clerk_키_입력
@@ -199,7 +199,7 @@ EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_자신의_Clerk_키_입력
 > ⚠️ **중요**: Expo에서는 환경변수 접두사로 반드시 `EXPO_PUBLIC_`을 기입해야 프론트엔드 네이티브 코드에서 올바르게 호출할 수 있습니다.
 
 #### ② `app.json`에 딥링크 Scheme 등록
-구글 로그인 완료 후 사용자가 기기 브라우저에서 원래 우리 모바일 앱으로 복귀할 수 있게 하는 앱 딥링크 식별자를 선언합니다. [app.json](file:///Users/guniluk/Desktop/CODING/webMobile-instagram/app.json)을 열고 `scheme` 속성을 지정합니다:
+구글 로그인 완료 후 사용자가 기기 브라우저에서 원래 우리 모바일 앱으로 복귀할 수 있게 하는 앱 딥링크 식별자를 선언합니다. [app.json](file:///Users/guniluk/Desktop/CLI/webMobile-instagram/app.json)을 열고 `scheme` 속성을 지정합니다:
 ```json
 {
   "expo": {
@@ -216,7 +216,7 @@ EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_자신의_Clerk_키_입력
 ### 4단계: Clerk 세션 토큰 캐시 설정
 앱을 완전히 껐다 켜도 구글 로그인 세션 상태가 계속 기기에 남아있도록 설정하는 파일입니다. 
 
-* **파일 경로**: [clerk-expo/tokenCache.ts](file:///Users/guniluk/Desktop/CODING/webMobile-instagram/clerk-expo/tokenCache.ts)
+* **파일 경로**: [clerk-expo/tokenCache.ts](file:///Users/guniluk/Desktop/CLI/webMobile-instagram/clerk-expo/tokenCache.ts)
 ```typescript
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
@@ -310,7 +310,7 @@ Convex 백엔드를 설치하고 내 로컬 프로젝트 폴더를 Convex 클라
    npx convex dev
    ```
    * **최초 실행 시**: 브라우저 창이 열리며 Convex 로그인(GitHub 가입 등)을 하라고 뜹니다.
-   * 로그인이 완료되면 자동으로 현재 프로젝트와 매핑되는 Convex 클라우드 인스턴스가 뚫리며, 접속 주소가 [.env.local](file:///Users/guniluk/Desktop/CODING/webMobile-instagram/.env.local) 파일의 `EXPO_PUBLIC_CONVEX_URL` 환경 변수에 자동으로 안전하게 저장됩니다.
+   * 로그인이 완료되면 자동으로 현재 프로젝트와 매핑되는 Convex 클라우드 인스턴스가 뚫리며, 접속 주소가 [.env.local](file:///Users/guniluk/Desktop/CLI/webMobile-instagram/.env.local) 파일의 `EXPO_PUBLIC_CONVEX_URL` 환경 변수에 자동으로 안전하게 저장됩니다.
    * **💡 안내**: `npx convex dev` 명령어는 터미널에 개발 중인 내내 계속 켜두는 것이 좋습니다. 백엔드 코드 수정 시 즉각 컴파일 및 갱신해 줍니다.
 
 ---
@@ -318,7 +318,7 @@ Convex 백엔드를 설치하고 내 로컬 프로젝트 폴더를 Convex 클라
 ### 8단계: 데이터베이스 스키마 정의
 Convex 클라우드 DB가 가질 테이블의 종류와 컬럼들의 타입을 명시합니다. 스키마에 정의되지 않은 값은 DB에 보관되지 않습니다.
 
-* **파일 경로**: [convex/schema.ts](file:///Users/guniluk/Desktop/CODING/webMobile-instagram/convex/schema.ts)
+* **파일 경로**: [convex/schema.ts](file:///Users/guniluk/Desktop/CLI/webMobile-instagram/convex/schema.ts)
 ```typescript
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
@@ -397,7 +397,7 @@ export default defineSchema({
 ### 9단계: Convex 백엔드 인증 활성화
 Convex 백엔드가 Clerk에서 날아온 암호화 입장권(JWT)을 해독할 수 있게 6단계에서 복사한 Clerk Issuer URL을 바인딩해 줍니다.
 
-* **파일 경로**: [convex/auth.config.ts](file:///Users/guniluk/Desktop/CODING/webMobile-instagram/convex/auth.config.ts)
+* **파일 경로**: [convex/auth.config.ts](file:///Users/guniluk/Desktop/CLI/webMobile-instagram/convex/auth.config.ts)
 ```typescript
 export default {
   providers: [
@@ -415,7 +415,7 @@ export default {
 ### 10단계: Convex 가입자 연동 Mutation 작성
 전달받은 Clerk의 회원 프로필 세션 가방 정보를 해독하여 Convex DB의 `users` 테이블에 새 회원을 생성하거나 프로필 사진 등이 바뀌면 갱신해주는 백엔드 DB 저장 전용 함수(Mutation)입니다.
 
-* **파일 경로**: [convex/users.ts](file:///Users/guniluk/Desktop/CODING/webMobile-instagram/convex/users.ts)
+* **파일 경로**: [convex/users.ts](file:///Users/guniluk/Desktop/CLI/webMobile-instagram/convex/users.ts)
 ```typescript
 import { mutation } from "./_generated/server";
 
@@ -467,7 +467,7 @@ export const storeUser = mutation({
 ### 11단계: 루트 레이아웃(Provider 및 엇갈림 방지) 구성
 Clerk 로그인 세션 상태와 Convex의 실시간 DB 커넥터를 유기적으로 감싸주는 Provider 설정 및 로그인이 완벽히 끝난 후에만 `storeUser`를 안전하게 1회 호출해 유저를 동기화하는 로직입니다.
 
-* **파일 경로**: [app/_layout.tsx](file:///Users/guniluk/Desktop/CODING/webMobile-instagram/app/_layout.tsx)
+* **파일 경로**: [app/_layout.tsx](file:///Users/guniluk/Desktop/CLI/webMobile-instagram/app/_layout.tsx)
 ```tsx
 import React, { useEffect } from 'react';
 import { ClerkProvider, useAuth } from "@clerk/expo";
@@ -533,7 +533,7 @@ function MainLayout() {
 ### 12단계: 구글 소셜 로그인 화면 구현
 `useSSO` 훅을 사용해 모바일 웹 브라우저를 띄우고 구글 인증 절차를 실행합니다.
 
-* **파일 경로**: [app/(auth)/sign-in.tsx](file:///Users/guniluk/Desktop/CODING/webMobile-instagram/app/(auth)/sign-in.tsx)
+* **파일 경로**: [app/(auth)/sign-in.tsx](file:///Users/guniluk/Desktop/CLI/webMobile-instagram/app/(auth)/sign-in.tsx)
 ```tsx
 import React, { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -609,7 +609,7 @@ npm install svix @clerk/backend
 ```
 
 #### ② Convex httpAction 추가
-* **파일 경로**: [convex/http.ts](file:///Users/guniluk/Desktop/CODING/webMobile-instagram/convex/http.ts)
+* **파일 경로**: [convex/http.ts](file:///Users/guniluk/Desktop/CLI/webMobile-instagram/convex/http.ts)
 ```typescript
 import { httpRouter } from "convex/server";
 import { Webhook } from "svix";
@@ -700,7 +700,7 @@ export default http;
 사진을 디바이스 앨범에서 고른 뒤, 임시 주소를 따와 직접 스토리지에 이진 파일(Blob)을 저장하고 게시물을 생성하는 핵심 로직입니다.
 
 #### ① 포스트 생성 및 임시 업로드 주소 발급 API 작성
-* **파일 경로**: [convex/posts.ts](file:///Users/guniluk/Desktop/CODING/webMobile-instagram/convex/posts.ts)
+* **파일 경로**: [convex/posts.ts](file:///Users/guniluk/Desktop/CLI/webMobile-instagram/convex/posts.ts)
 ```typescript
 import { mutation } from "./_generated/server";
 import { v } from "convex/values";
@@ -745,7 +745,7 @@ export const createPost = mutation({
 ```
 
 #### ② 프론트엔드 모바일 사진 실제 업로드 로직
-* **파일 경로**: [app/(tabs)/create.tsx](file:///Users/guniluk/Desktop/CODING/webMobile-instagram/app/(tabs)/create.tsx)
+* **파일 경로**: [app/(tabs)/create.tsx](file:///Users/guniluk/Desktop/CLI/webMobile-instagram/app/(tabs)/create.tsx)
 ```typescript
 const generateUploadUrl = useMutation(api.posts.generateUploadUrl);
 const createPost = useMutation(api.posts.createPost);
@@ -785,7 +785,7 @@ const handleUpload = async (imageUri: string, captionText: string) => {
 사용자가 피드를 아래로 당겼을 때 돌게되는 새로고침 로딩 아이콘(`RefreshControl`) 및 사진 업로드 중 키보드가 입력창을 가리지 않도록 한 세밀한 보정법입니다.
 
 #### ① 스피너 새로고침 (Pull-to-refresh) 구현
-[index.tsx](file:///Users/guniluk/Desktop/CODING/webMobile-instagram/app/(tabs)/index.tsx), [bookmarks.tsx](file:///Users/guniluk/Desktop/CODING/webMobile-instagram/app/(tabs)/bookmarks.tsx), [notification.tsx](file:///Users/guniluk/Desktop/CODING/webMobile-instagram/app/(tabs)/notification.tsx), [profile.tsx](file:///Users/guniluk/Desktop/CODING/webMobile-instagram/app/(tabs)/profile.tsx) 내 `FlatList` 및 `ScrollView`에 `RefreshControl`을 얹어줍니다.
+[index.tsx](file:///Users/guniluk/Desktop/CLI/webMobile-instagram/app/(tabs)/index.tsx), [bookmarks.tsx](file:///Users/guniluk/Desktop/CLI/webMobile-instagram/app/(tabs)/bookmarks.tsx), [notification.tsx](file:///Users/guniluk/Desktop/CLI/webMobile-instagram/app/(tabs)/notification.tsx), [profile.tsx](file:///Users/guniluk/Desktop/CLI/webMobile-instagram/app/(tabs)/profile.tsx) 내 `FlatList` 및 `ScrollView`에 `RefreshControl`을 얹어줍니다.
 
 ```tsx
 import { RefreshControl } from 'react-native';
@@ -837,7 +837,7 @@ useEffect(() => {
 
 ## 📱 페이지 구성 및 동작 (Screens & Functions)
 
-### 1. 홈 피드 화면 ([index.tsx](file:///Users/guniluk/Desktop/CODING/webMobile-instagram/app/(tabs)/index.tsx))
+### 1. 홈 피드 화면 ([index.tsx](file:///Users/guniluk/Desktop/CLI/webMobile-instagram/app/(tabs)/index.tsx))
 * **UI 구성**:
   * **상단 스토리 바**: 가로 스크롤이 가능한 유저 아바타 링들이 노출되며, 피드가 아래로 스크롤되더라도 화면 상단에 스태틱하게 고정되어 함께 위로 스크롤되지 않습니다.
   * **피드 카드 리스트**: 각 게시글 카드가 세로형으로 정렬되며, 작성자의 아바타와 닉네임, 업로드된 사진, 좋아요/댓글/북마크 아이콘, 게시글 본문 및 최신 댓글 요약 정보가 노출됩니다.
@@ -845,19 +845,20 @@ useEffect(() => {
 * **주요 기능 (Function)**:
   * **실시간 피드 구독**: `useQuery(api.posts.getPosts)`를 통해 DB 내 모든 신규 피드 등록, 좋아요, 댓글 상황이 화면에 실시간 재렌더링됩니다.
   * **인터랙션 토글**: 좋아요(`handleLike`), 북마크(`handleBookmark`) 기능이 백엔드와 연동되어 즉시 동작합니다.
-  * **댓글 창 모달**: 말풍선 아이콘을 누르면 하단에서 부드럽게 댓글 목록창 모달이 슬라이드업되며, 즉석에서 댓글을 작성(`handleAddComment`)할 수 있습니다.
+  * **댓글 창 모달 (UI 개선 완료 🎨)**: 말풍선 아이콘을 누르면 하단에서 부드럽게 댓글 목록창 모달이 슬라이드업되며, 즉석에서 댓글을 작성(`handleAddComment`)할 수 있습니다. *최근 개선: iOS 기기에서 댓글창 상/하단에 노출되던 흰색 여백 영역을 완전히 제거하고 검은색 배경으로 화면을 가득 채우도록 개선했습니다.*
   * **더보기 및 삭제**: 본인 게시글의 우측 상단 `...` 버튼을 누르면 연쇄 삭제(Cascade Delete)를 보장하는 삭제 모달이 제공되며, 타인의 글일 경우 즉석에서 팔로우 토글이 이루어집니다.
   * **스피너 새로고침**: 화면을 아래로 당기면 네이티브 새로고침 로딩바가 돌며 1초간 화면 피드백을 제공합니다.
 
-### 2. 북마크 화면 ([bookmarks.tsx](file:///Users/guniluk/Desktop/CODING/webMobile-instagram/app/(tabs)/bookmarks.tsx))
+### 2. 북마크 화면 ([bookmarks.tsx](file:///Users/guniluk/Desktop/CLI/webMobile-instagram/app/(tabs)/bookmarks.tsx))
 * **UI 구성**:
   * **Saved 포스트 미니 뷰**: 프로필 화면 하단과 통일성을 지니는 가로형 조밀 카드 방식으로 표현됩니다. 왼쪽에 80x80 이미지 썸네일, 우측에 닉네임, 본문 초안(2줄 말줄임 처리), 좋아요 수 카운트, 액션 토글 영역이 밀집되어 있습니다.
 * **주요 기능 (Function)**:
   * **실시간 저장 리스트**: `useQuery(api.bookmarks.getBookmarkedPosts)`로 내가 저장한 글들의 목록을 실시간으로 가져옵니다.
   * **즉시 해제 및 갱신**: 카드 내 북마크 아이콘을 눌러 북마크를 해제하면 반응형 DB 구조에 힘입어 목록에서 별도의 새로고침 없이 즉각 사라집니다.
+  * **유저 프로필 네비게이션 (추가 🔗)**: 북마크 리스트 내 각 항목의 `username` 또는 상세 보기 모달 내부 헤더의 `username`을 탭하면, 해당 유저의 상세 프로필 페이지(`/(tabs)/profile`)로 즉시 이동할 수 있습니다.
   * **스피너 새로고침**: 화면을 아래로 당기면 네이티브 새로고침 로딩바가 돌며 1초간 화면 피드백을 제공합니다.
 
-### 3. 새 게시글 작성 화면 ([create.tsx](file:///Users/guniluk/Desktop/CODING/webMobile-instagram/app/(tabs)/create.tsx))
+### 3. 새 게시글 작성 화면 ([create.tsx](file:///Users/guniluk/Desktop/CLI/webMobile-instagram/app/(tabs)/create.tsx))
 * **UI 구성**:
   * **헤더 제어 영역**: 타이틀("New Post") 기준 왼쪽에 뒤로가기 버튼(<-), 오른쪽에 업로드 실행 버튼("Share")이 배치되어 대칭 구조를 이룹니다.
   * **사진 뷰어 및 제어**: 사진이 선택되지 않은 상태에서는 갤러리 접근 가이드 영역이 노출되고, 사진이 선택되면 가로세로 정사각형 비율로 이미지가 표시되며 우측 상단에 삭제(X) 단추, 우측 하단에 교체(Change) 단추가 띄워집니다.
@@ -869,7 +870,7 @@ useEffect(() => {
   * **클라우드 스토리지 전송**: Convex의 `generateUploadUrl`로부터 일회성 보안 업로드 URL을 얻은 후, 이미지를 이진(Blob) 데이터로 변환해 스토리지에 실제 전송 및 업로드 후 `storageId`를 획득하여 최종 DB 포스트 데이터(`createPost`)를 생성합니다.
   * **키보드 밀림 스크롤 보정**: 입력 필드가 활성화될 때 `Keyboard` 이벤트를 리스닝하여 키보드가 화면을 덮는 시점에 맞추어 스크롤뷰 최하단(`scrollToBottom`)으로 150ms 미세 지연 후 강제 스크롤시킵니다.
 
-### 4. 실시간 활동 알림 화면 ([notification.tsx](file:///Users/guniluk/Desktop/CODING/webMobile-instagram/app/(tabs)/notification.tsx))
+### 4. 실시간 활동 알림 화면 ([notification.tsx](file:///Users/guniluk/Desktop/CLI/webMobile-instagram/app/(tabs)/notification.tsx))
 * **UI 구성**:
   * **알림 정보 카드**: 나에게 발생한 팔로우, 좋아요, 댓글 등의 활동 정보가 나열됩니다. 활동을 트리거한 타인의 아바타와 닉네임, 동작 요약(예: "liked your post"), 시간 정보가 보여집니다.
   * **게시글 미리보기 및 제어**: 해당 알림이 특정 게시글과 연계된 경우 우측 끝에 작은 이미지 미리보기 썸네일이 나타나며, 그 옆에 알림을 개별적으로 지울 수 있는 닫기(X) 아이콘이 존재합니다.
@@ -878,7 +879,7 @@ useEffect(() => {
   * **알림 개별 삭제**: 닫기 아이콘 클릭 시 `handleDeleteNotification`을 통해 DB에서 즉각 알림 행을 제거(`deleteNotification`)합니다.
   * **스피너 새로고침**: 화면을 아래로 당기면 네이티브 새로고침 로딩바가 돌며 1초간 화면 피드백을 제공합니다.
 
-### 5. 프로필 화면 ([profile.tsx](file:///Users/guniluk/Desktop/CODING/webMobile-instagram/app/(tabs)/profile.tsx))
+### 5. 프로필 화면 ([profile.tsx](file:///Users/guniluk/Desktop/CLI/webMobile-instagram/app/(tabs)/profile.tsx))
 * **UI 구성**:
   * **프로필 헤더**: 대상 사용자의 username이 보여지며 본인의 프로필일 경우에만 우측에 로그아웃 아이콘이 노출됩니다.
   * **유저 요약 정보**: 아바타 이미지와 함께 게시글 수, 팔로워 수, 팔로잉 수 통계 카운터가 배치되며, 그 아래 실명과 소개글(Bio)이 표시됩니다.
@@ -888,6 +889,7 @@ useEffect(() => {
   * **동적 다목적 조회**: `useLocalSearchParams`로 `username` 파라미터가 유입되면 타인 유저 정보를(`getUserProfile`), 비어있으면 로그인 사용자 정보(`getUserByClerkId`)를 기준으로 화면을 분기합니다.
   * **소개글 단독 모달 수정**: "Edit Profile" 클릭 시 전용 바텀 시트/모달이 실행되어 소개글(Bio)만 수정하여 `updateProfile` Mutation으로 변경 및 저장합니다.
   * **팔로우 관계 설정**: 상대방 프로필 영역에서 클릭 시 즉각 상대방의 팔로워 카운터와 나의 팔로잉 상태를 제어(`toggleFollow`)합니다.
+  * **되돌아가기 버튼 (추가 🔙)**: 본인 프로필이 아닌 타인의 프로필 페이지일 경우, 왼쪽 상단 헤더 영역에 되돌아가기(`chevron-back`) 버튼이 제공되며 `router.back()`을 통해 이전 화면(피드 또는 북마크 리스트)으로 자연스럽게 복귀할 수 있도록 UI/UX를 개선했습니다.
   * **스피너 새로고침**: 화면을 아래로 당기면 네이티브 새로고침 로딩바가 돌며 1초간 화면 피드백을 제공합니다.
 
 [⬆️ 목차로 돌아가기](#toc)
@@ -947,10 +949,10 @@ eas login
 ```bash
 eas build:configure
 ```
-* 명령어가 끝나면 프로젝트 루트에 [eas.json](file:///Users/guniluk/Desktop/CODING/webMobile-instagram/eas.json) 설정 파일이 생성됩니다.
+* 명령어가 끝나면 프로젝트 루트에 [eas.json](file:///Users/guniluk/Desktop/CLI/webMobile-instagram/eas.json) 설정 파일이 생성됩니다.
 
 #### ③ 프로덕션 환경변수 기입 (`eas.json`)
-빌드 단계에서 앱 내부에 상용 API Key들이 올바르게 탑재되도록 [eas.json](file:///Users/guniluk/Desktop/CODING/webMobile-instagram/eas.json)을 열고 `production` 프로필 하위에 `env` 딕셔너리를 직접 수동 선언합니다:
+빌드 단계에서 앱 내부에 상용 API Key들이 올바르게 탑재되도록 [eas.json](file:///Users/guniluk/Desktop/CLI/webMobile-instagram/eas.json)을 열고 `production` 프로필 하위에 `env` 딕셔너리를 직접 수동 선언합니다:
 ```json
 {
   "cli": {
@@ -1014,7 +1016,7 @@ eas submit --platform all
 * **원인 1**: Clerk Webhook Signing Secret 연동 과정에 누락이나 오타가 있습니다.
   * **해결법**: Convex 대시보드의 Environment Variables 탭에 `CLERK_WEBHOOK_SECRET` 키가 `whsec_...` 값으로 올바르게 보관되어 있는지 검증하세요.
 * **원인 2**: Clerk JWT 템플릿의 Issuer URL이 내 백엔드 코드 설정과 다릅니다.
-  * **해결법**: Clerk 대시보드의 JWT Templates 내 Convex 템플릿 정보에 기입된 `Issuer URL`과 프로젝트 폴더 내 [convex/auth.config.ts](file:///Users/guniluk/Desktop/CODING/webMobile-instagram/convex/auth.config.ts)의 `domain` 주소가 동일한지 다시 복사하여 붙여넣으십시오 (끝에 `/` 기호는 지워야 합니다).
+  * **해결법**: Clerk 대시보드의 JWT Templates 내 Convex 템플릿 정보에 기입된 `Issuer URL`과 프로젝트 폴더 내 [convex/auth.config.ts](file:///Users/guniluk/Desktop/CLI/webMobile-instagram/convex/auth.config.ts)의 `domain` 주소가 동일한지 다시 복사하여 붙여넣으십시오 (끝에 `/` 기호는 지워야 합니다).
 
 ### Q3. Clerk JWT Template을 생성할 때 `audiences` 에러가 떠요.
 * **원인**: JWT Claims JSON 창에 `aud` 속성이 빠졌거나 다릅니다.

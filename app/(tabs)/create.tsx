@@ -1,4 +1,10 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { COLORS } from '@/constants/theme';
+import { useUser } from '@clerk/expo';
+import { Ionicons } from '@expo/vector-icons';
+import { useMutation } from 'convex/react';
+import * as ImagePicker from 'expo-image-picker';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Image,
   Keyboard,
@@ -11,20 +17,14 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import * as ImagePicker from 'expo-image-picker';
-import { useUser } from '@clerk/expo';
-import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { api } from '../../convex/_generated/api';
 import { styles } from '../../styles/create.styles';
-import { COLORS } from '@/constants/theme';
-import { useMutation } from "convex/react";
-import { api } from "../../convex/_generated/api";
 
 export default function Create() {
   const { user } = useUser();
   const router = useRouter();
   const scrollViewRef = useRef<ScrollView>(null);
-  
+
   const generateUploadUrl = useMutation(api.posts.generateUploadUrl);
   const createPost = useMutation(api.posts.createPost);
 
@@ -47,7 +47,8 @@ export default function Create() {
   };
 
   useEffect(() => {
-    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const showEvent =
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
     const showSubscription = Keyboard.addListener(showEvent, scrollToBottom);
     return () => {
       showSubscription.remove();
@@ -56,7 +57,9 @@ export default function Create() {
 
   const currentUser = {
     username: user?.username || user?.firstName || 'me_instagram',
-    avatar: user?.imageUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
+    avatar:
+      user?.imageUrl ||
+      'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
   };
 
   const selectImage = async () => {
@@ -83,7 +86,7 @@ export default function Create() {
     if (!image) return;
     try {
       setIsSubmitting(true);
-      
+
       // 1. 업로드용 URL 발급
       const uploadUrl = await generateUploadUrl();
 
@@ -92,15 +95,15 @@ export default function Create() {
       const blob = await response.blob();
 
       const uploadResponse = await fetch(uploadUrl, {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": blob.type || "image/jpeg",
+          'Content-Type': blob.type || 'image/jpeg',
         },
         body: blob,
       });
 
       if (!uploadResponse.ok) {
-        throw new Error("이미지 업로드에 실패했습니다.");
+        throw new Error('이미지 업로드에 실패했습니다.');
       }
 
       const { storageId } = await uploadResponse.json();
@@ -110,11 +113,11 @@ export default function Create() {
         storageId,
         caption: caption.trim() || undefined,
       });
-      
+
       // 상태 초기화
       setImage(null);
       setCaption('');
-      
+
       // 홈 탭으로 이동
       router.push('/(tabs)');
     } catch (error) {
@@ -136,9 +139,17 @@ export default function Create() {
         <TouchableOpacity
           onPress={handleShare}
           disabled={!image || isSubmitting}
-          style={[styles.shareButton, (!image || isSubmitting) && styles.shareButtonDisabled]}
+          style={[
+            styles.shareButton,
+            (!image || isSubmitting) && styles.shareButtonDisabled,
+          ]}
         >
-          <Text style={[styles.shareText, (!image || isSubmitting) && styles.shareTextDisabled]}>
+          <Text
+            style={[
+              styles.shareText,
+              (!image || isSubmitting) && styles.shareTextDisabled,
+            ]}
+          >
             {isSubmitting ? 'Sharing...' : 'Share'}
           </Text>
         </TouchableOpacity>
@@ -158,24 +169,42 @@ export default function Create() {
           {image ? (
             <View style={styles.imageSection}>
               <Image source={{ uri: image }} style={styles.previewImage} />
-              <TouchableOpacity style={styles.deleteImageButton} onPress={() => setImage(null)}>
+              <TouchableOpacity
+                style={styles.deleteImageButton}
+                onPress={() => setImage(null)}
+              >
                 <Ionicons name="close" size={20} color={COLORS.white} />
               </TouchableOpacity>
-              <TouchableOpacity style={styles.changeImageButton} onPress={selectImage}>
-                <Ionicons name="camera-reverse" size={20} color={COLORS.white} />
+              <TouchableOpacity
+                style={styles.changeImageButton}
+                onPress={selectImage}
+              >
+                <Ionicons
+                  name="camera-reverse"
+                  size={20}
+                  color={COLORS.white}
+                />
                 <Text style={styles.changeImageText}>Change</Text>
               </TouchableOpacity>
             </View>
           ) : (
-            <TouchableOpacity style={styles.emptyImageContainer} onPress={selectImage}>
+            <TouchableOpacity
+              style={styles.emptyImageContainer}
+              onPress={selectImage}
+            >
               <Ionicons name="images-outline" size={48} color={COLORS.grey} />
-              <Text style={styles.emptyImageText}>Select an image to share</Text>
+              <Text style={styles.emptyImageText}>
+                Select an image to share
+              </Text>
             </TouchableOpacity>
           )}
 
           <View style={styles.inputSection}>
             <View style={styles.captionContainer}>
-              <Image source={{ uri: currentUser.avatar }} style={styles.userAvatar} />
+              <Image
+                source={{ uri: currentUser.avatar }}
+                style={styles.userAvatar}
+              />
               <TextInput
                 placeholder="Write a caption..."
                 placeholderTextColor={COLORS.grey}

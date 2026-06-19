@@ -1,30 +1,30 @@
-import { COLORS } from "@/constants/theme";
-import { api } from "@/convex/_generated/api";
-import { ClerkProvider, useAuth } from "@clerk/expo";
-import { ConvexReactClient, useConvexAuth, useMutation } from "convex/react";
-import { ConvexProviderWithClerk } from "convex/react-clerk";
-import { Stack, useRouter, useSegments } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import React from "react";
-import { ActivityIndicator, View } from "react-native";
+import { COLORS } from '@/constants/theme';
+import { api } from '@/convex/_generated/api';
+import { ClerkProvider, useAuth } from '@clerk/expo';
+import { ConvexReactClient, useConvexAuth, useMutation } from 'convex/react';
+import { ConvexProviderWithClerk } from 'convex/react-clerk';
+import { Stack, useRouter, useSegments } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import React from 'react';
+import { ActivityIndicator, View } from 'react-native';
 import {
   SafeAreaProvider,
   useSafeAreaInsets,
-} from "react-native-safe-area-context";
-import { tokenCache } from "../clerk-expo/tokenCache";
+} from 'react-native-safe-area-context';
+import { tokenCache } from '../clerk-expo/tokenCache';
 
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
 const convexUrl = process.env.EXPO_PUBLIC_CONVEX_URL!;
 
 if (!publishableKey) {
   throw new Error(
-    "Missing EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY. Please set it in your .env.local file.",
+    'Missing EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY. Please set it in your .env.local file.',
   );
 }
 
 if (!convexUrl) {
   throw new Error(
-    "Missing EXPO_PUBLIC_CONVEX_URL. Please set it in your .env.local file.",
+    'Missing EXPO_PUBLIC_CONVEX_URL. Please set it in your .env.local file.',
   );
 }
 
@@ -45,15 +45,15 @@ function MainLayout() {
     if (isSignedIn) {
       const checkToken = async () => {
         try {
-          const token = await getToken({ template: "convex" });
+          const token = await getToken({ template: 'convex' });
           console.log(
             "Clerk Token Debug - 'convex' template token:",
             token
               ? `Token exists (Starts with: ${token.substring(0, 15)}...)`
-              : "Token is null/undefined",
+              : 'Token is null/undefined',
           );
         } catch (error) {
-          console.error("Clerk Token Debug - Error fetching token:", error);
+          console.error('Clerk Token Debug - Error fetching token:', error);
         }
       };
       void checkToken();
@@ -63,35 +63,35 @@ function MainLayout() {
   // 로그인 상태에 따른 라우팅 제어
   React.useEffect(() => {
     console.log(
-      "Clerk Auth State - isLoaded:",
+      'Clerk Auth State - isLoaded:',
       isLoaded,
-      "isSignedIn:",
+      'isSignedIn:',
       isSignedIn,
     );
     if (!isLoaded) return;
 
-    const inAuthGroup = segments[0] === "(auth)";
+    const inAuthGroup = segments[0] === '(auth)';
 
     if (!isSignedIn && !inAuthGroup) {
       // 로그인되어 있지 않은데 auth 그룹이 아닌 곳에 있다면 로그인 화면으로 리다이렉트
-      router.replace("/(auth)/sign-in");
+      router.replace('/(auth)/sign-in');
     } else if (isSignedIn && inAuthGroup) {
       // 로그인되어 있는데 auth 그룹에 있다면 메인 화면으로 리다이렉트
-      router.replace("/(tabs)");
+      router.replace('/(tabs)');
     }
   }, [isLoaded, isSignedIn, segments, router]);
 
   // Convex DB 유저 저장/동기화 (Convex 인증이 완전히 수립되었을 때 실행)
   React.useEffect(() => {
-    console.log("Convex Auth State - isAuthenticated:", isAuthenticated);
+    console.log('Convex Auth State - isAuthenticated:', isAuthenticated);
     if (isAuthenticated) {
       const syncUser = async () => {
         try {
-          console.log("Attempting to call storeUser...");
+          console.log('Attempting to call storeUser...');
           const result = await storeUser();
-          console.log("storeUser success, result userId:", result);
+          console.log('storeUser success, result userId:', result);
         } catch (error) {
-          console.error("Failed to sync user to Convex DB:", error);
+          console.error('Failed to sync user to Convex DB:', error);
         }
       };
       void syncUser();
@@ -104,8 +104,8 @@ function MainLayout() {
         style={{
           flex: 1,
           backgroundColor: COLORS.background,
-          justifyContent: "center",
-          alignItems: "center",
+          justifyContent: 'center',
+          alignItems: 'center',
         }}
       >
         <ActivityIndicator size="large" color={COLORS.primary} />
@@ -129,7 +129,7 @@ function MainLayout() {
         <Stack.Screen
           name="index"
           options={{
-            title: "HOME",
+            title: 'HOME',
           }}
         />
         <Stack.Screen
